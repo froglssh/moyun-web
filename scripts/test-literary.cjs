@@ -40,7 +40,18 @@ assert.deepEqual(engine.analyzeLiteraryConcept(engine.sourceText(find('江雪'))
 assert(!engine.analyzeLiteraryConcept('沒有小船，只有竹林。').scenePlan.elements.some(e=>e.id==='boat'));
 const local=engine.analyzeLiteraryConcept(plain),cloud={meaning:'孤寂',focus:plain.lines[0],representation:'literal',note:'依原文取景',elements:[{id:'boat',evidence:'孤舟蓑笠翁'}]};
 assert(engine.validateCloudPlan(cloud,plain,local));
-for(const bad of [ {...cloud,elements:[{id:'bird',evidence:'千山鳥飛絕'}]}, {...cloud,elements:[{id:'moon',evidence:'明月'}]}, {...cloud,focus:'不存在的文章'}, {...cloud,representation:'calligraphy'}, {...cloud,elements:[cloud.elements[0],cloud.elements[0]]} ])assert.throws(()=>engine.validateCloudPlan(bad,plain,local));
+// 不合格景物逐項略去（不整份作廢），並在 cloudNote 說明原因
+{const r=engine.validateCloudPlan({...cloud,elements:[{id:'bird',evidence:'千山鳥飛絕'},{id:'moon',evidence:'明月'},cloud.elements[0]]},plain,local);const ids=r.scenePlan.elements.map(e=>e.id);
+ assert(!ids.includes('bird')&&!ids.includes('moon')&&ids.includes('boat'),'invalid cloud elements dropped');assert(/鳥禽/.test(r.cloudNote)&&/月色/.test(r.cloudNote),'dropped elements explained');}
+{const r=engine.validateCloudPlan({...cloud,focus:'不存在的文章'},plain,local);assert.equal(r.scenePlan.focus,local.scenePlan.focus);assert(/取景段落改用本機/.test(r.cloudNote));}
+assert.equal(engine.validateCloudPlan({...cloud,representation:'calligraphy'},plain,local).scenePlan.elements.length,0,'calligraphy has no imagery');
+assert.equal(engine.validateCloudPlan({...cloud,elements:[cloud.elements[0],cloud.elements[0]]},plain,local).scenePlan.elements.length,1,'duplicates removed');
+{const r=engine.validateCloudPlan({...cloud,elements:[{id:'bird',evidence:'千山鳥飛絕'}]},plain,local);assert.deepEqual(r.scenePlan.elements.map(e=>e.id),local.scenePlan.elements.map(e=>e.id),'all rejected falls back to local scene');assert.equal(r.meaning,'孤寂');}
+assert.throws(()=>engine.validateCloudPlan({focus:'x'},plain,local),'no meaning and no yijing');
+// 使用者截圖情境：自貼王維詩，雲端以「林叟」為人物
+{const t='行到水窮處，坐看雲起時。偶然值林叟，談笑無還期。',l=engine.analyzeLiteraryConcept(t);
+ const r=engine.validateCloudPlan({meaning:'隨遇而安的閒適',focus:t,representation:'literal',note:'山行偶遇',elements:[{id:'person',evidence:'偶然值林叟'},{id:'cloud',evidence:'坐看雲起時'},{id:'river',evidence:'行到水窮處'},{id:'mountain',evidence:'終南山'}],yijing:{emotion:'serene',time:'day',season:'none',weather:'clear',viewpoint:'shenyuan',scale:'medium',emptiness:.6,focal:'person',reading:'水窮雲起，於無路處見新境，偶遇林叟談笑忘歸，寫隨緣自在的閒適心境。',composition:'山徑盡處一人坐看雲起，林叟相伴。'}},t,l);
+ const ids=r.scenePlan.elements.map(e=>e.id);assert(ids.includes('person')&&ids.includes('cloud'),'林叟 is a person');assert(!ids.includes('mountain'),'evidence not in text dropped');assert.equal(r.meaning,'隨遇而安的閒適');assert.equal(r.yijing.emotion,'serene');}
 const inkPlum=find('墨梅');const inkText=engine.sourceText(inkPlum),inkPlan=engine.analyzeLiteraryConcept(inkText);
 const alternate={meaning:'花枝',focus:inkText,representation:'literal',note:'花色',elements:[{id:'flower',evidence:'個個花開淡墨痕'}]};
 assert.deepEqual(engine.validateCloudPlan(alternate,inkText,inkPlan).scenePlan,inkPlan.scenePlan,'pasted editorial classics cannot be changed by cloud');

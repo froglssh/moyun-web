@@ -100,7 +100,7 @@
     }
     // 山形：主峰與數個肩峰的疊合，避免幾何三角形；尖峰用於雄奇，圓峰用於江南與遠山
     const bumps = m => m._b || (m._b = (() => {
-      const k = mountains.indexOf(m) + 1, arr = [{ c: m.cx, w: m.w * .5, a: 1 }];
+      const k = mountains.indexOf(m) + 1, arr = [{ c: m.cx, w: m.w * .62, a: 1 }];
       for (let i = 0; i < 3; i++) arr.push({ c: m.cx + sn(k * 7 + i, 201) * m.w * .62, w: m.w * (.22 + .2 * nz(k * 7 + i, 202)), a: .42 + .36 * nz(k * 7 + i, 203) });
       return arr;
     })());
@@ -109,7 +109,10 @@
       let v = 0;
       for (const b of bumps(m)) { const d = Math.abs((x - b.c) / b.w); v = Math.max(v, b.a * (m.shape === 'round' ? Math.exp(-d * d * 1.1) : Math.exp(-Math.pow(d, 1.55) * 1.6))); }
       v *= Math.min(1, (1 - Math.abs(t)) * 3.2);
-      return m.base + m.h * v * (1 + (.03 * Math.sin(x * 29 + m.cx * 9) + .015 * Math.sin(x * 73 + m.cx * 3)) * (1 - Math.abs(t)));
+      // 稜線起伏（參照原版：三組正弦疊加），讓山形有石骨轉折而非幾何三角
+      const wave = Math.sin(x * 23 + m.cx * 9) * .5 + Math.sin(x * 57 + m.cx * 5) * .3 + Math.sin(x * 131 + m.cx * 3) * .2;
+      const hh = m.h * v;
+      return m.base + hh + (m.layer === 'far' ? .006 : .013) * wave * Math.min(1, hh / .05);
     };
     const ridge = x => mountains.reduce((v, m) => Math.max(v, prof(m, x)), -1);
     // 山體內不染天色；浮在後方的遠山之下留一片隨山形收束的白雲（雲斷山腰），不留矩形空白
@@ -172,58 +175,72 @@
     });
     as('sun', () => {
       const [sx, sy] = sunPos;
-      D(sx, sy, { r: .022, ink: 0, cin: .5, water: .14, hard: 1 });
+      D(sx, sy, { r: .034, ink: 0, cin: 1.05, water: .15, hard: 1 });
       if (opts.lightOnMoss) for (let i = 0; i < 9; i++) D(mainX + sn(i, 7) * .12, .2 + nz(i, 8) * .08, { r: .0045, ink: .05, cin: .45, water: .25 });
     });
     as('sunset', () => {
       const [sx, sy] = sunPos;
       for (let k = 0; k < 2; k++) for (const d of [-1, 1]) S([[sx, sy - .01 + k * .03], [cl(sx + d * .2), sy - .008 + k * .03]], { r: .024, ink: 0, cin: (.07 * (yj.warmth ?? .5) + .02) * (1 - k * .5), water: .85, fade: .97, speed: 2.5, after: .01 });
-      D(sx, sy, { r: .026, ink: 0, cin: .9, water: .12, hard: 1 });
+      D(sx, sy, { r: .038, ink: 0, cin: 1.2, water: .15, hard: 1 });
       if (hasWater) for (let i = 0; i < 6; i++) { const yy = horizon - .02 - i * .03; S([[sx - .05 + i * .006, yy], [sx + .05 - i * .006, yy]], { r: .0035, ink: 0, cin: .5 - i * .06, water: .3 }); }
     });
 
     /* ───────── 5. 山：遠山如黛不皴，近山皴擦點苔；山腳淡出為雲氣 ───────── */
     const tex = yj.texture || 'pima';
     const snowy = yj.sky === 'snow';
+    const mistAll = yj.sky === 'mist' || yj.weather === 'mist' || has('cloud') || vp === 'shenyuan';
+    /* 山石筆墨（參照原版墨韻）：稜線重筆 → 由峰頂下垂的褶皺 → 依坡向的皴擦 → 沿稜線向下層層淡墨渲染 → 點苔。
+       f 為山形函數，回傳高度（<0 表示不在此山範圍）；同一套筆法用於主山、遠山與近岸坡石。 */
+    const runsOf = (f, base, x0, x1, dx, th) => {
+      const out = []; let cur = null;
+      for (let x = x0; x <= x1 + 1e-9; x += dx) { const y = f(x); if (y - base > th) { if (!cur) { cur = []; out.push(cur); } cur.push([x, y]); } else cur = null; }
+      return out.filter(r => r.length > 2);
+    };
+    const inkRange = (f, base, x0, x1, o) => {
+      const k = o.ink, s = o.s || 1, seedK = o.seed || 0;
+      const rs = runsOf(f, base, x0, x1, .008, .01); if (!rs.length) return;
+      if (o.far) {
+        for (const run of rs) S(run, { r: .0045, ink: snowy ? .14 : .22 * k, water: .8, speed: .9 });
+        if (!snowy) for (let j = 0; j < 5; j++) { const off = .01 + j * .02; for (const run of runsOf(x => f(x) - off, base, x0, x1, .02, .004)) S(run, { r: .022, ink: .12 * k * (1 - j / 5.5), water: .75, speed: 3, after: .02 }); }
+        return;
+      }
+      // 稜線：濃墨重筆，逐漸乾枯；雪山只淡勾
+      for (const run of rs) S(run, { r: .0042 * s, ink: (snowy ? .5 : 1.05) * k, water: .25, dry: .05, dryGrow: .5, fade: o.mist ? .55 : .35, speed: .5 });
+      const pk = [];
+      for (const run of rs) for (let i = 2; i < run.length - 2; i++) if (run[i][1] > run[i - 1][1] && run[i][1] >= run[i + 1][1] && run[i][1] - base > .05) pk.push(run[i]);
+      // 褶皺：峰頂下垂的山脈結構線
+      pk.slice(0, o.folds).forEach((p, pi) => {
+        const side = nz(pi + seedK, 31) < .5 ? -1 : 1, len = (p[1] - base) * (.45 + .3 * nz(pi + seedK, 32)), pts = [];
+        let x = p[0], y = p[1] - .004;
+        for (let i = 0; i <= 8; i++) { pts.push([x, y]); y -= len / 8; x += side * (.002 + .007 * nz(pi * 9 + i + seedK, 33)); }
+        S(pts, { r: .0036 * s, ink: (snowy ? .35 : .8) * k, water: .2, dry: .25, dryGrow: .5, fade: .5, speed: .7, after: .05 });
+      });
+      if (!snowy) {
+        // 皴擦：依皴法改變筆形
+        for (let i = 0; i < o.cun; i++) {
+          const run = rs[Math.floor(nz(i + seedK, 41) * rs.length)], q = run[Math.floor((.05 + .9 * nz(i + seedK, 42)) * (run.length - 1))], top = q[1];
+          const y = top - (.008 + nz(i + seedK, 43) * Math.max(.004, (top - base) * .6 - .008)), x = q[0];
+          const slope = (f(x + .005) - f(x - .005)) / .01, side = slope > 0 ? -1 : 1, L = .02 + .025 * nz(i + seedK, 44);
+          if (tex === 'midian') { for (let d = 0; d < 3; d++) D(x + side * d * .008, y - d * .006, { r: .0058 * s, ink: .32 * k, water: .55, after: .01 }); continue; }
+          const pts = [[x, y]], lean = tex === 'fupi' ? .9 : .55;
+          for (let t = 1; t <= 3; t++) pts.push([x + side * L * t / 3 * lean + sn(i * 3 + t, 45) * .002, y - L * t / 3 * (tex === 'fupi' ? .7 : 1)]);
+          S(pts, { r: (tex === 'fupi' ? .0034 : .0026) * s, ink: (tex === 'fupi' ? .7 : .6) * k, water: .12, dry: tex === 'fupi' ? .6 : .45, dryGrow: .3, speed: 1.3, after: .015 });
+        }
+        // 渲染：沿稜線向下層層淡墨；有雲氣時下半留白
+        const layers = o.mist ? 4 : 7;
+        for (let j = 0; j < layers; j++) { const off = .008 + j * .018, ij = .2 * k * (1 - j / 7.5) * (.8 + WET * .4); for (const run of runsOf(x => f(x) - off, base, x0, x1, .02, .006)) S(run, { r: .02, ink: ij, water: .8, speed: 2.8, after: .02 }); }
+        // 點苔
+        for (let i = 0; i < o.moss; i++) { const run = rs[Math.floor(nz(i + seedK, 51) * rs.length)], q = run[Math.floor((.1 + .8 * nz(i + seedK, 52)) * (run.length - 1))]; D(q[0] + sn(i + seedK, 53) * .004, q[1] + .002 + .004 * nz(i + seedK, 54), { r: (.003 + .0025 * nz(i + seedK, 55)) * s, ink: (.9 + .5 * nz(i + seedK, 56)) * k, water: .3, after: .05 }); }
+      }
+    };
     as('mountain', () => {
-      const order = { far: 0, mid: 1, near: 2 };
+      const order = { far: 0, mid: 1, near: 2 }, dens = 1.35 - E * .7;
       [...mountains].sort((a, b) => order[a.layer] - order[b.layer]).forEach((m, mi) => {
-        const pts = []; for (let i = 0; i <= 26; i++) { const x = m.cx - m.w + i / 26 * m.w * 2; pts.push([x, Math.max(m.base, prof(m, x))]); }
-        const top = pts.reduce((a, b) => b[1] > a[1] ? b : a);
-        const ti = pts.indexOf(top), left = pts.slice(0, ti + 1).reverse(), right = pts.slice(ti);
-        const mist = yj.sky === 'mist' || yj.weather === 'mist' || has('cloud') || vp === 'shenyuan';
-        if (m.layer === 'far') {
-          if (snowy) { S(left, { r: .0016, ink: .2, water: .3, fade: .7 }); S(right, { r: .0016, ink: .2, water: .3, fade: .7 }); return; }
-          S(pts, { r: .008, ink: .17, water: .75, dry: 0, speed: 2 });
-          for (let k = 1; k <= 4; k++) { const yy = m.base + m.h * k * .16; const span = m.w * (.85 - k * .17); S([[m.cx - span, yy], [m.cx, yy + .004], [m.cx + span, yy]], { r: .022, ink: .035, water: .9, dry: 0, speed: 3, after: .006 }); }
-          return;
-        }
-        const near = m.layer === 'near', lineInk = snowy ? .4 : near ? .95 : .62;
-        const fadeBase = mist ? .9 : .45;
-        S(left, { r: near ? .0036 : .0028, ink: lineInk, water: .18, dry: DRY * .8, fade: fadeBase });
-        S(right, { r: near ? .0036 : .0028, ink: lineInk, water: .18, dry: DRY * .8, fade: fadeBase });
-        // 次峰：主峰側面再起一道稜線，增加山體結構
-        const sub = pts.filter((p, i) => i % 3 === 0).map(([x, y]) => [m.cx + (x - m.cx) * .62 + .03 * dirOpen, m.base + (y - m.base) * .66]);
-        S(sub.slice(2, -2), { r: .0022, ink: lineInk * .7, dry: .5, fade: .6 });
-        if (snowy) {
-          // 雪山不皴：只以幾筆短線示意山石，山體留白即是雪
-          for (let k = 0; k < 5; k++) { const p = pts[3 + k * 4]; if (p) S([[p[0], p[1] - .01], [p[0] + .012 * Math.sign(p[0] - m.cx), p[1] - .05]], { r: .0013, ink: .28, dry: .6 }); }
-          return;
-        }
-        // 皴擦：取山體內部的點，依所在坡面方向落筆；留白越多皴越少
-        const n = (Math.round((1 - E) * (near ? 52 : 26)) + 8) * (tex === 'midian' ? 2 : 1);
-        for (let k = 0; k < n; k++) {
-          const x = m.cx + sn(k + mi * 50, 11) * m.w * .78, top = prof(m, x);
-          if (top < 0) continue;
-          const yTop = top - .012, depth = (top - m.base) * (mist ? .55 : .8), y = yTop - nz(k + mi * 50, 12) * depth * .7;
-          const dirx = Math.sign(x - m.cx) || 1, len = .025 + (top - m.base) * .12;
-          if (tex === 'pima') S([[x, y], [x + dirx * len * .3, y - len * .55], [x + dirx * len * .15, y - len]], { r: .0014, ink: .32, dry: .6, water: .1 });
-          else if (tex === 'fupi') S([[x, y], [x + dirx * len * .25, y - len * .55]], { r: .0042, ink: .42, dry: .8, water: .04 });
-          else if (tex === 'midian') D(x, y, { r: .0065, ink: .2, water: .55 });
-        }
-        // 暈染體積：陰面淡墨，山腰以上，下半留白為雲
-        for (let k = 0; k < 2; k++) S([[m.cx - .02 * dirOpen, top[1] - .03 - k * .05], [m.cx - m.w * .45 * dirOpen, m.base + m.h * (.45 - k * .1)]], { r: .016, ink: .07 * (1 + WET * .5), water: .8, dry: 0, speed: 2.4, after: .008 });
-        if (near || m.main) for (let k = 0; k < 6; k++) { const p = pts[6 + Math.floor(nz(k, 21) * 14)]; D(p[0] + sn(k, 22) * .006, p[1] + .004, { r: .0028, ink: 1.05, water: .1 }); }
+        const f = x => { const v = prof(m, x); return v < 0 ? m.base : v; };
+        const x0 = cl(m.cx - m.w), x1 = cl(m.cx + m.w);
+        if (m.layer === 'far') inkRange(f, m.base, x0, x1, { far: true, ink: 1, seed: mi * 100 });
+        else if (m.layer === 'mid') inkRange(f, m.base, x0, x1, { ink: .7, s: .9, cun: Math.round(14 * dens), moss: Math.round(8 * dens), folds: 3, mist: mistAll, seed: mi * 100 });
+        else inkRange(f, m.base, x0, x1, { ink: 1, s: 1, cun: Math.round(26 * dens), moss: Math.round(14 * dens), folds: 5, mist: mistAll, seed: mi * 100 });
       });
     });
 
@@ -232,8 +249,8 @@
       const m = mountains.find(x => x.main) || { cx: .5, base: horizon, h: .6 };
       const fx = m.cx + .03 * dirOpen, top = m.base + m.h * .82, bot = horizon - .02;
       // 崖壁分段濃墨、水口與飛瀑留白
-      for (let k = 0; k < 4; k++) { const y0 = top - k * (top - bot) / 4, y1 = y0 - (top - bot) / 4 * .85; for (const d of [-1, 1]) S([[fx + d * (.026 + k * .003), y0], [fx + d * (.03 + k * .003) + sn(k, d + 5) * .004, y1]], { r: .003, ink: .85, dry: .65, fade: .3 }); }
-      for (let i = 0; i < 4; i++) { const x0 = fx - .014 + i * .009; S([[x0, top - .01], [x0 + sn(i, 3) * .003, (top + bot) / 2], [x0 + sn(i, 4) * .004, bot + .05]], { r: .0009, ink: .2, dry: .85, speed: 2, fade: .5 }); }
+      for (const d of [-1, 1]) S([[fx + d * .024, top], [fx + d * .028, top - (top - bot) * .35], [fx + d * .031 + sn(d, 5) * .004, top - (top - bot) * .7], [fx + d * .036, bot + .04]], { r: .0032, ink: .62, dry: .55, dryGrow: .3, fade: .55 });
+      for (let i = 0; i < 3; i++) { const x0 = fx - .01 + i * .01; S([[x0, top - .02], [x0 + sn(i, 3) * .003, (top + bot) / 2], [x0 + sn(i, 4) * .004, bot + .06]], { r: .0008, ink: .14, dry: .9, speed: 2, fade: .6 }); }
       for (let i = 0; i < 5; i++) D(fx + sn(i, 6) * .06, bot + .02 + nz(i, 7) * .03, { r: .014, ink: .04, water: .85 });
     });
 
@@ -265,11 +282,11 @@
       if (moonPos && hasWater) for (let i = 0; i < 5; i++) { const yy = horizon - .03 - i * .035; S([[moonPos[0] - .025 + i * .004, yy], [moonPos[0] + .025 - i * .004, yy]], { r: .0012, ink: .18, water: .2, dry: .3 }); }
       // 遠岸一線、水天相接
       S([[cl(openX - .3), horizon], [cl(openX + .3), horizon + .002]], { r: .0016, ink: .28, water: .3, dry: .3, fade: .3 });
-      const n = rough ? 12 : Math.round(3 + (1 - E) * 6);
+      const n = rough ? 12 : Math.round(4 + (1 - E) * 4);
       for (let i = 0; i < n; i++) {
-        const yy = shoreY + .03 + (horizon - shoreY - .05) * (i / n) ** 1.3, w = .05 + (1 - i / n) * .12, cx = openX + sn(i, 31) * .18;
-        const p = []; for (let x = cx - w; x <= cx + w; x += .02) p.push([x, yy + Math.sin(x * (rough ? 34 : 22) + i) * (rough ? .018 : .003)]);
-        S(p, { r: rough ? .0032 : .0014, ink: rough ? .85 : .3, dry: rough ? .6 : .3, water: rough ? .1 : .2, speed: 1.6 });
+        const yy = shoreY + .03 + (horizon - shoreY - .05) * (i / n) ** 1.3, w = .06 + (1 - i / n) * .16, cx = openX + sn(i, 31) * .18;
+        const p = []; for (let x = cl(cx - w); x <= cl(cx + w); x += .01) p.push([x, yy + Math.sin(x * (rough ? 34 : 60) + i) * (rough ? .018 : .002)]);
+        S(p, { r: rough ? .0032 : .0019, ink: rough ? .85 : .5, dry: rough ? .6 : .5, dryGrow: .3, fade: rough ? 0 : .6, water: .1, speed: 1.4 });
       }
       if (rough) for (let i = 0; i < 6; i++) { const x = mainX + dirOpen * (.05 + i * .06), y = shoreY + .06 + nz(i, 2) * .08; S([[x - .03, y], [x - .01, y + .04], [x + .02, y + .045], [x + .03, y + .02], [x + .012, y + .012]], { r: .0026, ink: .8, dry: .55 }); }
       if (intimate) for (let i = 0; i < 4; i++) S([[cl(openX - .18 + i * .04), shoreY + .02 + i * .028], [cl(openX + .1 + i * .03), shoreY + .024 + i * .028]], { r: .0012, ink: .28, dry: .4 });
@@ -287,70 +304,85 @@
     });
 
     /* ───────── 9. 坡岸：每一處坡岸都屬於站在上面的物象 ───────── */
-    const bank = (cx, cy, w, o = {}) => {
-      S([[cx - w, cy - .004], [cx - w * .4, cy + .02], [cx + w * .3, cy + .016], [cx + w, cy - .006]], { r: .0026, ink: snowy ? .5 : .8, dry: .55, ...o });
-      if (!snowy) for (let k = 0; k < 3; k++) S([[cx - w * .6 + k * w * .45, cy + .01], [cx - w * .5 + k * w * .45, cy - .01]], { r: .0016, ink: .4, dry: .7 });
-      S([[cx - w * .8, cy - .008], [cx + w * .8, cy - .006]], { r: .012, ink: snowy ? 0 : .05, water: .8, dry: 0 });
+    // 坡岸：與山石同一套筆墨的小坡，屬於站在上面的物象
+    // top 為坡頂高度；坡腳向兩側緩降，回傳坡形函數供樹、屋、人立足
+    const bank = (cx, top, w) => {
+      const h = Math.min(.06, .025 + w * .22), base = top - h, f = x => base + h * Math.exp(-Math.pow(Math.abs(x - cx) / (w * .7), 1.5));
+      inkRange(f, base, cl(cx - w * 1.6), cl(cx + w * 1.6), { ink: snowy ? .8 : 1, s: 1.05, cun: snowy ? 0 : 7, moss: snowy ? 0 : 5, folds: 1, mist: false, seed: Math.round(cx * 1000) });
+      return f;
     };
 
     /* ───────── 10. 樹木 ───────── */
     const perches = [];
-    const trunk = (a, b, h, lean = 0, r = .004) => {
-      const p = [[a, b], [a + lean * .3 + .006, b + h * .35], [a + lean * .6 - .006, b + h * .68], [a + lean, b + h]];
-      S(p, { r, ink: 1.1, dry: .5, water: .08 });
-      S(p.map(([x, y], i) => [x + .007 * (1 - i / 3), y]), { r: r * .45, ink: .6, dry: .7 });
-      return p;
+    // 樹（參照原版墨韻）：微曲樹幹 → 三至六枝 → 枝梢以濕墨點葉成團
+    const trunkOf = (a, b, h, r = .0048, k = 1, lean = 0) => {
+      const ph = nz(a * 97, 61) * 6.28, sw = .004 + .006 * nz(a * 31, 62), pts = [];
+      for (let i = 0; i <= 12; i++) { const t = i / 12; pts.push([a + Math.sin(t * 3 + ph) * sw * t + lean * t, b + h * t]); }
+      S(pts, { r, ink: 1.1 * k, water: .2, dry: .2, dryGrow: .5, fade: .3, speed: .55 });
+      return pts;
     };
-    const branches = (a, b, h, lean, n, len, cb) => {
-      for (let i = 0; i < n; i++) {
-        const side = i % 2 ? -1 : 1, by = b + h * (.42 + i * .55 / n), bx = a + lean * ((by - b) / h);
-        const ex = bx + side * len * (.6 + .5 * nz(i, 41)), ey = by + len * (.35 + .4 * nz(i, 42));
-        const mid = [bx + (ex - bx) * .5 + .008 * side, by + (ey - by) * .35];
-        S([[bx, by], mid, [ex, ey]], { r: .0018, ink: .9, dry: .45 });
-        const tx = ex + side * len * .3, ty = ey + len * .25 * (nz(i, 43) - .3);
-        S([[ex, ey], [tx, ty]], { r: .0011, ink: .8, dry: .5 });
-        S([mid, [mid[0] + side * len * .25, mid[1] + len * .35]], { r: .0011, ink: .8, dry: .5 });
-        cb && cb(ex, ey, side, i); perches.push([tx, ty]);
+    const branchesOf = (tr, h, n, k = 1, spread = 1) => {
+      const tips = [tr[12]];
+      for (let b = 0; b < n; b++) {
+        const t = .45 + .47 * nz(b + tr[0][0] * 50, 63), p = tr[Math.round(t * 12)], side = b % 2 ? 1 : -1;
+        const L = (.03 + .03 * nz(b + tr[0][0] * 70, 64)) * (1.2 - t) * (h / .2) * spread, pts = [[p[0], p[1]]];
+        for (let st = 1; st <= 4; st++) pts.push([p[0] + side * L * st / 4, p[1] + L * st / 4 * (.1 + .35 * nz(b * 5 + st, 65))]);
+        S(pts, { r: .0024, ink: .95 * k, water: .15, dry: .2, speed: .7, after: .03 });
+        tips.push(pts[4]); perches.push(pts[4]);
       }
+      return tips;
     };
-    const leafCluster = (x, y, size, i, o = {}) => {
+    const foliage = (tp, i, k = 1, scale = 1) => {
       const season = yj.season, red = H.redLeaves && !opts.withered;
-      const cnt = season === 'autumn' ? 7 : season === 'summer' ? 14 : 11;
-      for (let j = 0; j < cnt; j++) {
-        const px = x + sn(i * 13 + j, 51) * size, py = y + sn(i * 13 + j, 52) * size * .7;
-        // 胡椒點：春潤淡、夏濃密、秋疏而可帶朱
-        if (season === 'spring' || o.soft) D(px, py, { r: .0042, ink: .3, water: .45, cin: red ? .5 : 0 });
-        else D(px, py, { r: .0034, ink: red && j % 2 ? .12 : season === 'summer' ? .8 : .6, cin: red ? .8 : 0, water: .2 });
+      const n = season === 'autumn' ? 6 : season === 'summer' ? 11 : 8;
+      for (let d = 0; d < n; d++) {
+        const a = nz(i * 17 + d, 66) * 6.28, rad = (.004 + .016 * nz(i * 17 + d, 67)) * scale;
+        const inkD = (season === 'spring' ? .45 : .6 + .6 * nz(i * 17 + d, 68)) * k;
+        D(tp[0] + Math.cos(a) * rad * 1.3, tp[1] + Math.sin(a) * rad * .7, { r: (.004 + .0028 * nz(i * 17 + d, 69)) * Math.min(1.4, scale), ink: red && d % 2 ? .1 : inkD, cin: red ? .85 : 0, water: .55, after: .025 });
       }
     };
     const treeAt = (a, b, h, kind) => {
-      const lean = sn(a * 100, 5) * .04;
+      const sc = Math.max(.8, h / .2);
       if (kind === 'bare') {
-        trunk(a, b, h, lean, .0055);
-        branches(a, b, h, lean, 6, h * .32);
+        const tr = trunkOf(a, b, h * .78, .0062, 1.1);
+        // 枯樹：三層分枝，主枝向兩側斜展，末梢作蟹爪；焦墨枯筆
+        const limb = (x, y, ang, len, r, depth, seed) => {
+          const pts = [[x, y]];
+          for (let st = 1; st <= 4; st++) { const t = st / 4; pts.push([x + Math.cos(ang) * len * t + sn(seed + st, 81) * .004, y + Math.sin(ang) * len * t + Math.sin(t * 3) * .006]); }
+          S(pts, { r, ink: 1.05, water: .12, dry: .35, dryGrow: .4, speed: .7, after: .02 });
+          const end = pts[4]; perches.push(end);
+          if (depth <= 0) { for (let j = 0; j < 3; j++) { const aj = ang + (j - 1) * .55 + .25; S([end, [end[0] + Math.cos(aj) * .014, end[1] + Math.sin(aj) * .014]], { r: .0011, ink: .95, dry: .4 }); } return; }
+          const n = depth === 2 ? 3 : 2;
+          for (let j = 0; j < n; j++) { const t = .45 + .4 * j / n, p = pts[Math.round(t * 4)], aj = ang + (j % 2 ? .55 : -.45) + sn(seed + j, 82) * .2; limb(p[0], p[1], aj, len * .55, r * .62, depth - 1, seed * 3 + j); }
+        };
+        const top = tr[12];
+        limb(top[0], top[1], Math.PI / 2 + .55, h * .42, .0042, 2, 11);
+        limb(top[0], top[1], Math.PI / 2 - .5, h * .38, .0038, 2, 23);
+        limb(tr[8][0], tr[8][1], Math.PI / 2 + (dirOpen > 0 ? -1.05 : 1.05), h * .34, .0034, 1, 37);
         if (H.fallingLeaves) for (let i = 0; i < 12; i++) S([[a + dirOpen * (.04 + nz(i, 61) * .3), b + h * (.3 + nz(i, 62) * .7)], [a + dirOpen * (.05 + nz(i, 61) * .3), b + h * (.28 + nz(i, 62) * .7)]], { r: .0018, ink: .7, dry: .4 });
         return;
       }
       if (kind === 'pine') {
-        const p = trunk(a, b, h, lean + .03 * dirOpen, .0048);
-        for (let k = 0; k < 5; k++) { const y = b + h * (.18 + k * .14); S([[a + lean * .5 - .004, y], [a + lean * .5 + .004, y + .006]], { r: .0012, ink: .6, dry: .7 }); }
+        const tr = trunkOf(a, b, h, .0052, 1, .03 * dirOpen);
+        for (let k = 0; k < 5; k++) { const p = tr[2 + k * 2]; S([[p[0] - .004, p[1]], [p[0] + .004, p[1] + .006]], { r: .0013, ink: .7, dry: .7 }); }
         for (let k = 0; k < 5; k++) {
-          const cy = b + h * (.5 + k * .12), cx = a + lean * ((cy - b) / h) + (k % 2 ? -1 : 1) * .045;
-          S([[a + lean * ((cy - b) / h), cy - .01], [cx, cy]], { r: .0016, ink: .9, dry: .4 });
-          for (let j = 0; j < 9; j++) { const t = Math.PI * (.1 + .8 * j / 8); S([[cx, cy], [cx + Math.cos(t) * .03, cy + Math.sin(t) * .016]], { r: .001, ink: .95, dry: .3 }); }
-          S([[cx - .03, cy + .004], [cx + .03, cy + .004]], { r: .01, ink: .07, water: .8, dry: 0 });
+          const p = tr[6 + k], cx = p[0] + (k % 2 ? -1 : 1) * .045 * sc * .6, cy = p[1] + .01;
+          S([[p[0], p[1]], [cx, cy]], { r: .0018, ink: .95, dry: .35 });
+          for (let j = 0; j < 9; j++) { const t = Math.PI * (.1 + .8 * j / 8); S([[cx, cy], [cx + Math.cos(t) * .03, cy + Math.sin(t) * .016]], { r: .0013, ink: 1, dry: .25 }); }
+          S([[cx - .03, cy + .004], [cx + .03, cy + .004]], { r: .011, ink: .1, water: .8, dry: 0 });
           perches.push([cx, cy + .015]);
         }
         return;
       }
       if (kind === 'willow') {
-        trunk(a, b, h * .6, lean, .0045);
-        for (let i = 0; i < 18; i++) { const x0 = a + lean * .6 + sn(i, 71) * .06, y0 = b + h * (.55 + nz(i, 72) * .15); S([[x0, y0], [x0 + sn(i, 73) * .03, y0 - .02], [x0 + sn(i, 74) * .04, y0 - h * (.3 + nz(i, 75) * .25)]], { r: .0011, ink: yj.season === 'spring' ? .45 : .6, water: .35, dry: .1 }); }
+        const tr = trunkOf(a, b, h * .6, .005);
+        const top = tr[12];
+        for (let i = 0; i < 20; i++) { const x0 = top[0] + sn(i, 71) * .06, y0 = top[1] + nz(i, 72) * .05; S([[x0, y0], [x0 + sn(i, 73) * .03, y0 - .02], [x0 + sn(i, 74) * .04, y0 - h * (.3 + nz(i, 75) * .25)]], { r: .0013, ink: yj.season === 'spring' ? .5 : .7, water: .35, dry: .1 }); }
         return;
       }
-      trunk(a, b, h, lean, .0048);
-      const withered = opts.withered || yj.season === 'winter';
-      branches(a, b, h, lean, 5, h * .3, (ex, ey, side, i) => { if (!withered) leafCluster(ex, ey, .03 + h * .05, i); });
+      const tr = trunkOf(a, b, h);
+      const tips = branchesOf(tr, h, 3 + Math.round(nz(a * 13, 70) * 3));
+      if (!(opts.withered || yj.season === 'winter')) tips.forEach((tp, i) => foliage(tp, i + Math.round(a * 100), 1, sc * .8));
     };
     const nearSlots = [];
     const slot = (w = .14) => { const k = nearSlots.length; const x = cl(sgn === 0 ? mainX + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * w : mainX + dirOpen * k * w * .85); nearSlots.push(x); return x; };
@@ -363,7 +395,10 @@
       const owner = has('person') ? 'person' : has('bare_tree') ? 'bare_tree' : [...ids][0];
       as(owner, () => {
         const c = [[cl(mainX - .2 * dirOpen), treeBase + .005], [cl(mainX + .05 * dirOpen), treeBase + .012], [cl(mainX + .16 * dirOpen), treeBase - .01], [cl(mainX + .19 * dirOpen), treeBase - .12], [cl(mainX + .16 * dirOpen), treeBase - .26], [cl(mainX + .2 * dirOpen), .06]];
-        S(c, { r: .0036, ink: .95, dry: .65 });
+        S(c, { r: .0042, ink: 1.05, dry: .45, dryGrow: .4 });
+        // 崖壁以側鋒淡墨與點苔加重體積
+        for (let k = 0; k < 5; k++) { const y = treeBase - .02 - k * .065, x0 = mainX + (.17 - k * .004) * dirOpen; S([[x0, y], [x0 - .09 * dirOpen, y - .02]], { r: .018, ink: .13 - k * .015, water: .8, dry: 0, speed: 2.6 }); }
+        for (let k = 0; k < 6; k++) D(mainX + (.02 + k * .028) * dirOpen, treeBase + .006, { r: .0035, ink: 1.1, water: .3 });
         for (let k = 0; k < 7; k++) { const y = treeBase - .03 - k * .05, x0 = mainX + (.15 - k * .004) * dirOpen; S([[x0, y], [x0 - .05 * dirOpen, y - .03]], { r: .0024, ink: .5, dry: .75 }); }
       });
     }
@@ -375,8 +410,8 @@
       const far = hasWater && !intimate;
       const bx = has('bridge') ? cl(mainX + .3 * dirOpen) : cl(mainX + .14 * dirOpen);
       const a = far ? bx : cl(mainX + (intimate ? -.04 * dirOpen : .1 * dirOpen)), b = far ? midY : intimate ? groundY - .01 : shoreY + .02, s = far ? .55 : intimate ? 1.05 : 1;
+      if (!far) bank(a, b + .002, .11 * s);
       withT({ ox: 0, oy: 0, cx: a, cy: b, s }, () => {
-        if (!far) bank(0, -.004, .11);
         S([[-.085, .075], [-.05, .12], [.055, .125], [.095, .078]], { r: .006, ink: .95, water: .25, dry: .55 });
         S([[-.07, .085], [.08, .088]], { r: .0018, ink: .7 });
         S([[-.065, .076], [-.065, 0], [.07, 0], [.07, .078]], { r: .0024, ink: .8 });
@@ -401,7 +436,7 @@
     /* 近景樹木：依主景側排列，前大後小 */
     const treeKinds = [['bare_tree', 'bare'], ['pine', 'pine'], ['willow', 'willow'], ['tree', 'tree']];
     for (const [id, kind] of treeKinds) as(id, () => {
-      const x = slot(); bank(x, treeBase - .01, .09);
+      const x = slot(); bank(x, treeBase + .004, .09);
       treeAt(x, treeBase, treeH * (id === 'pine' ? 1.15 : 1), kind);
       if (opts.castShadows) for (let i = 0; i < 4; i++) S([[x, treeBase], [x + dirOpen * (.18 + i * .03), treeBase - .06 + i * .012]], { r: .0035, ink: .12, water: .45 });
       // 平遠時遠岸以小點樹呼應，表現距離
@@ -409,7 +444,7 @@
     });
     as('bamboo', () => {
       const x0 = slot(.18), n = intimate ? 5 : 4, hh = intimate ? .62 : treeH * 1.2, wind = yj.weather === 'wind' ? 1 : 0;
-      if (!has('stone')) bank(x0, treeBase - .01, .1);
+      if (!has('stone')) bank(x0, treeBase + .004, .1);
       for (let k = 0; k < n; k++) {
         const a = x0 + (k - n / 2) * .04 * -dirOpen, h = hh * (.75 + .35 * nz(k, 91)), segs = 7, ink = k % 2 ? .55 : 1;
         for (let i = 0; i < segs; i++) { const y = treeBase + i * h / segs; S([[a, y + .004], [a + .003, y + h / segs - .004]], { r: .0026, ink }); D(a + .002, y + h / segs, { r: .0024, ink: ink * 1.1 }); }
@@ -454,7 +489,7 @@
       });
     });
     as('peach', () => {
-      const x = slot(); bank(x, treeBase - .01, .09); treeAt(x, treeBase, treeH, 'bare');
+      const x = slot(); bank(x, treeBase + .004, .09); treeAt(x, treeBase, treeH, 'bare');
       for (let i = 0; i < 30; i++) D(x + sn(i, 1) * .12, treeBase + treeH * (.45 + nz(i, 2) * .5), { r: .0038, ink: .04, cin: .7, water: .25 });
       if (/落英|繽紛/.test(evidenceOf('peach') + (plan.focus || ''))) for (let i = 0; i < 10; i++) D(x + dirOpen * nz(i, 5) * .25, shoreY + nz(i, 6) * .1, { r: .0026, ink: 0, cin: .55 });
     });
@@ -491,7 +526,7 @@
     as('broken_pot', () => { S([[.37, .1], [.33, .04], [.36, .03]], { r: .0025 }); S([[.53, .04], [.57, .06], [.55, .1]], { r: .0025 }); S([[.42, .03], [.46, .06], [.48, .03]], { r: .0018 }); });
 
     // 平遠水景若近處空無一物，以一抹近岸坡腳定出觀者立足點
-    if (waterId && !intimate && !nearSlots.length && !highBank && !has('house')) as(waterId, () => { bank(cl(mainX - .04 * dirOpen), shoreY - .02, .16); S([[cl(mainX - .2 * dirOpen), shoreY - .03], [cl(mainX + .14 * dirOpen), shoreY - .026]], { r: .0016, ink: .35, dry: .5 }); });
+    if (waterId && !intimate && !nearSlots.length && !highBank && !has('house')) as(waterId, () => { bank(cl(mainX - .04 * dirOpen), shoreY + .02, .16); S([[cl(mainX - .2 * dirOpen), shoreY - .03], [cl(mainX + .14 * dirOpen), shoreY - .026]], { r: .0016, ink: .35, dry: .5 }); });
     /* ───────── 11. 舟、魚、禽 ───────── */
     const boatPos = (() => {
       if (H.vanishingSail || opts.distantBoat) return [cl(openX + .12 * dirOpen), horizon + .004, .32];
@@ -583,7 +618,7 @@
         else if (has('house') && intimate) { a = cl(mainX + dirOpen * (.17 + i * .07)); b = groundY - .01; }
         else if (has('house') && !hasWater) { a = cl(mainX + dirOpen * (.16 + i * .06)); b = shoreY + .01; }
         else if (has('horse')) { a = cl(mainX + dirOpen * (.22 + i * .05)); b = shoreY + .04; }
-        else { a = cl((nearSlots[0] ?? mainX) + dirOpen * (.1 + i * .06)); b = shoreY + .01; if (i === 0 && !nearSlots.length && !intimate) bank(a, b - .006, .07); }
+        else { a = cl((nearSlots[0] ?? mainX) + dirOpen * (.1 + i * .06)); b = shoreY + .01; if (i === 0 && !nearSlots.length && !intimate) bank(a, b + .002, .07); }
         if (n > 1 && !onBoat && !opts.distantPerson && i % 2) face = -face;
         figure(a, b, s, i === 0 || n <= 2 ? action : (action === 'farm' ? 'farm' : ''), face);
         if (i === 0) figAnchor = [a, b, s, face];

@@ -451,6 +451,7 @@
 <script src="literary_yijing.js"></script>
 <script src="literary_engine.js"></script>
 <script src="literary_painter.js"></script>
+<script src="literary_cloud.js"></script>
 <script>if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <style>
 :root{
@@ -784,11 +785,12 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
 .fallback{position:fixed;inset:0;display:grid;place-items:center;padding:0 24px;text-align:center;font-size:16px;line-height:1.9;color:var(--ink-soft)}
 
 /* 原文題跋與畫面分區，過長文字以翻頁續讀，不裁切或改字。 */
-.poem { left:auto; right:18px; top:74px; width:34vw; max-height:calc(100vh - 210px); writing-mode:horizontal-tb; flex-direction:row-reverse; flex-wrap:nowrap; gap:4px; align-items:flex-start; }
+.poem { left:auto; right:18px; top:74px; width:36vw; max-height:calc(100vh - 180px); writing-mode:horizontal-tb; flex-direction:row-reverse; flex-wrap:nowrap; gap:4px; align-items:flex-start; }
 .has-calligraphy .mast {visibility:hidden;}
 .poem .ln { writing-mode:vertical-rl; text-orientation:upright; flex-shrink:0; }
-.poem .ln.ln-ins { font-size:11px; letter-spacing:.02em; line-height:1.25; }
-.poem .seal { flex-shrink:0; align-self:flex-end; width:30px; height:30px; font-size:12px; padding:3px; }
+.poem .ln.ln-ins { font-size:var(--ins-fs,11px); letter-spacing:.02em; line-height:1.25; }
+.poem .verse-gap { font-size:.5em; }
+.poem .seal { flex-shrink:0; align-self:flex-end; width:var(--seal-size,30px); height:var(--seal-size,30px); font-size:calc(var(--seal-size,30px) * .4); padding:calc(var(--seal-size,30px) * .1); }
 .inscription-nav {position:fixed;right:18px;bottom:128px;z-index:6;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);background:var(--veil);padding:6px;border:1px solid var(--line);border-radius:4px;}
 .inscription-nav[hidden] {display:none;}
 .inscription-nav button {font:inherit;background:var(--paper);border:1px solid var(--line);padding:4px 7px;color:var(--ink);cursor:pointer;}
@@ -809,9 +811,23 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
 .insight-toast.note-mode .insight-toast-body > div{margin:0 0 .7em}
 .insight-toast.note-mode .insight-toast-body b{color:var(--ink);font-weight:700}
 .insight-toast.note-mode .insight-toast-body .note-key{padding:.5em .8em;border-left:4px solid var(--cinnabar);background:color-mix(in srgb,var(--cinnabar) 7%,transparent);border-radius:4px}
-.insight-toast.note-mode .insight-toast-body .note-minor{font-size:.82em;color:var(--ink-soft)}
+.insight-toast.note-mode .insight-toast-body .note-minor{font-size:1em;color:var(--ink);padding-top:.5em;border-top:1px dashed var(--line)}
+.insight-toast.note-mode .insight-toast-body .note-minor + .note-minor{padding-top:0;border-top:0}
 @media (max-width:520px){.insight-toast.note-mode{padding:16px 16px 20px}}
 .reader-evidence {padding-left:20px;line-height:1.8;font-size:14px;color:var(--ink-soft);overflow-wrap:anywhere;}
+.ai-provider-row{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0 6px}
+.ai-provider-row label{display:inline-flex;align-items:center;gap:5px;font-size:14px;cursor:pointer}
+.ai-label{display:block;font-size:13px;color:var(--ink-soft);margin:10px 0 4px}
+.ai-key-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ai-key-row .option-input{flex:1 1 220px;min-width:0}
+.ai-small{flex:none;padding:6px 12px}
+.ai-links{display:flex;flex-wrap:wrap;gap:6px 16px;margin:10px 0 4px;font-size:14px}
+.ai-links a{color:var(--cinnabar);text-decoration:underline;text-underline-offset:3px}
+.ai-howto{margin:6px 0 10px;padding-left:22px;font-size:13px;line-height:1.75;color:var(--ink-soft)}
+.ai-test-result{margin-top:8px;font-size:14px;line-height:1.7}
+.ai-test-result .ok{color:#2f6b3a}.ai-test-result .bad{color:var(--cinnabar)}.ai-test-result .warn{color:var(--ink-soft)}
+.ai-test-result details{font-size:12px;color:var(--ink-faint)}
+.ai-privacy{font-size:12px;color:var(--ink-faint);margin-top:10px;line-height:1.6}
 .yijing-box {margin:12px 0;padding:12px 14px;border:1px solid var(--line);border-left:3px solid var(--cinnabar);border-radius:6px;}
 .yijing-chips {display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
 .yijing-chip {font-size:14px;line-height:1.5;padding:2px 9px;border:1px solid var(--line);border-radius:999px;color:var(--ink-soft);white-space:nowrap;}
@@ -1110,14 +1126,45 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
         </div>
       </div>
 
-      <!-- AI 意境大腦設定 -->
-      <details class="ai-engine-fold">
-        <summary>⚙️ AI 創作大腦設定 (可選填 API Key)</summary>
+      <!-- AI 意境大腦設定：本機引擎＋三家雲端 AI -->
+      <details class="ai-engine-fold" id="aiEngineFold">
+        <summary>⚙️ AI 創作大腦設定（本機免金鑰；可選接 Gemini／GPT／Claude）</summary>
         <div class="ai-engine-content">
-          <div>本系統預設內建<b>「神思古典意境推演大腦」</b>，以原文證據與專篇釋義在瀏覽器本機構思，免金鑰；尚未核定的篇目會標示保守取景。</div>
-          <div>若您有 <b>Google Gemini API Key</b>，可填於下方，系統將啟動雲端多模態大模型進行原文主旨與構圖的補充釋義；回覆須通過原文依據檢查：</div>
-          <input type="password" class="option-input" id="inputApiKey" placeholder="選填：貼上 Gemini API Key (以 AIzaSy... 開頭)">
-          <div style="font-size:11px;color:var(--ink-faint)">金鑰儲存在此瀏覽器；填入後，創作時會將該篇文字及所選圖片傳送至 Google Gemini。留空即使用本機引擎。</div>
+          <div>本系統預設內建<b>「神思古典意境推演大腦」</b>，以原文證據、專篇釋義與意境解析在瀏覽器本機構思，免金鑰。選擇雲端 AI 後，會再請該模型補充主旨與意境解讀；回覆仍須通過原文依據檢查，名篇校訂不會被覆寫。</div>
+          <div class="ai-provider-row" role="radiogroup" aria-label="選擇 AI 大腦">
+            <label><input type="radio" name="aiProvider" value="local" checked> 本機引擎</label>
+            <label><input type="radio" name="aiProvider" value="gemini"> Google Gemini</label>
+            <label><input type="radio" name="aiProvider" value="openai"> OpenAI GPT</label>
+            <label><input type="radio" name="aiProvider" value="claude"> Anthropic Claude</label>
+          </div>
+          <div id="aiProviderPanel" hidden>
+            <div id="aiRouteRow" hidden>
+              <label for="aiRouteSelect" class="ai-label">連線方式</label>
+              <select class="option-input" id="aiRouteSelect"></select>
+              <input type="url" class="option-input" id="aiBaseInput" placeholder="自訂端點，例如 https://你的伺服器/v1" spellcheck="false" hidden style="margin-top:6px">
+            </div>
+            <label for="aiKeyInput" class="ai-label">API Key</label>
+            <div class="ai-key-row">
+              <input type="password" class="option-input" id="aiKeyInput" autocomplete="off" spellcheck="false" placeholder="貼上 API Key">
+              <button type="button" class="btn-secondary ai-small" id="aiKeyToggle" aria-pressed="false">顯示</button>
+            </div>
+            <label for="aiModelSelect" class="ai-label">模型</label>
+            <div class="ai-key-row">
+              <select class="option-input" id="aiModelSelect"></select>
+              <input type="text" class="option-input" id="aiModelCustom" placeholder="或自訂模型代碼" spellcheck="false" aria-label="自訂模型代碼（填寫後優先使用）">
+            </div>
+            <div class="ai-links">
+              <a id="aiKeyLink" href="#" target="_blank" rel="noopener">🔑 申請／管理 API Key ↗</a>
+              <a id="aiDocLink" href="#" target="_blank" rel="noopener">📘 官方文件 ↗</a>
+            </div>
+            <ol class="ai-howto" id="aiHowto"></ol>
+            <div class="ai-key-row">
+              <button type="button" class="btn-secondary" id="aiTestBtn">🔌 測試連線</button>
+              <button type="button" class="btn-secondary" id="aiClearBtn">清除此金鑰</button>
+            </div>
+            <div id="aiTestResult" class="ai-test-result" role="status" aria-live="polite"></div>
+          </div>
+          <div class="ai-privacy">金鑰只儲存在這台電腦的瀏覽器，創作時由瀏覽器直接把該篇文字（圖片模式含所選圖片）送到所選服務；費用依各家帳戶計算。課堂共用電腦用畢請按「清除此金鑰」。</div>
         </div>
       </details>
     </div>
@@ -1774,33 +1821,52 @@ function showPoem(k,customLines=null,customSeal=null,inscription=null,pageIndex=
   const lines=customLines || (typeof k==='number'?POEMS[k]:POEMS[0]);
   calligraphyState={k,lines,seal:customSeal,inscription,pageIndex};
   hidePoem();poemEl.hidden=false;poemEl.className='poem';document.body.classList.add('has-calligraphy');
-  const availableHeight=Math.max(180,innerHeight-230),availableWidth=innerWidth*.34;
-  let fs=lines.length<=4?Math.min(28,innerWidth*.045):20;
+  // 題字字級依視窗大小自動放大：先求單頁容得下的最大字級；短句不足時，兩三句併為一行（句間留半字空），長篇才翻頁。
+  const availableHeight=Math.max(180,innerHeight-196),availableWidth=innerWidth*.36,GAP='\u0001';
   const split=(text,max)=>{const chars=Array.from(text),chunks=[];for(let i=0;i<chars.length;i+=max)chunks.push(chars.slice(i,i+max).join(''));return chunks;};
-  let columns=[],colsPerPage=1;
-  const insColumns=inscription?Math.ceil(Array.from(inscription).length/Math.max(8,Math.floor(availableHeight/13))):0;
-  const reservedWidth=38+insColumns*18;
-  while(fs>=12){
-    const maxChars=Math.max(5,Math.floor(availableHeight/(fs*1.13)));
-    columns=lines.flatMap(line=>split(line,maxChars));
-    colsPerPage=Math.max(1,Math.floor((availableWidth-reservedWidth)/(fs*1.35+4)));
-    if(columns.length<=colsPerPage || fs===12)break;
-    fs=Math.max(12,fs-2);
+  const verses=lines.map(l=>Array.from(l)).filter(v=>v.length);
+  const longest=Math.max(1,...verses.map(v=>v.length));
+  const sealFor=f=>Math.round(Math.min(76,Math.max(30,f*1.45)));
+  const insFor=f=>Math.round(Math.min(22,Math.max(12,f*.44)));
+  const insLen=inscription?Array.from(inscription).length:0;
+  function layout(f,k){
+    const maxChars=Math.max(4,Math.floor(availableHeight/(f*1.13))),cols=[];
+    for(let i=0;i<verses.length;i+=k){
+      const group=verses.slice(i,i+k);
+      if(k>1&&group.reduce((a,v)=>a+v.length,0)+(group.length-1)*.5>maxChars)return null;
+      if(k===1)cols.push(...split(group[0].join(''),maxChars));else cols.push(group.map(v=>v.join('')).join(GAP));
+    }
+    const insFs=insFor(f),insPer=Math.max(8,Math.floor(availableHeight/(insFs*1.27))),insCols=Math.ceil(insLen/insPer);
+    const colW=f*1.35+Math.max(4,f*.2),reserved=sealFor(f)*.85+insCols*(insFs*1.35+4)+10;
+    const per=Math.max(1,Math.floor((availableWidth-reserved)/colW));
+    return {fs:f,cols,per,insFs,insPer,fits:cols.length<=per};
   }
+  let best=null;
+  for(let f=Math.min(68,Math.max(16,Math.floor(availableHeight/(longest*1.13))));f>=16&&!best;f--)for(const k of [1,2,3,4]){const L=layout(f,k);if(L&&L.fits){best=L;break;}}
+  if(!best)best=layout(16,1);
+  // 題字不宜壓過畫面：在可容納的最大字級之下，再以視窗比例設上限（約 4.2vmin，22–44px）
+  const capFs=Math.round(Math.min(44,Math.max(22,Math.min(innerWidth,innerHeight)*.042)));
+  if(best.fs>capFs){const k=[1,2,3,4].map(k=>layout(capFs,k)).find(L=>L&&L.fits);if(k)best=k;}
+  let fs=best.fs;const columns=best.cols,colsPerPage=best.per;
+  poemEl.style.gap=Math.round(Math.max(4,fs*.2))+'px';
+  poemEl.style.setProperty('--ins-fs',best.insFs+'px');poemEl.style.setProperty('--seal-size',sealFor(fs)+'px');
   poemEl.style.fontSize=fs+'px';poemEl.style.lineHeight='1.35';poemEl.style.letterSpacing='.08em';
   const pages=[];for(let i=0;i<columns.length;i+=colsPerPage)pages.push(columns.slice(i,i+colsPerPage));
   if(!pages.length)pages.push([]);
   const page=Math.max(0,Math.min(pages.length-1,pageIndex));calligraphyState.pageIndex=page;
-  const totalChars=pages[page].join('').length;
+  const totalChars=pages[page].join('').replaceAll(GAP,'').length;
   const charDelay=reduced?0:Math.min(45,3500/Math.max(1,totalChars));
   let delay=0;
   function appendColumn(text,isIns=false){
     const ln=document.createElement('div');ln.className=isIns?'ln ln-ins':'ln';
-    for(const ch of text){const span=document.createElement('span');span.className='ch';span.textContent=ch;span.style.transitionDelay=delay+'ms';delay+=isIns?8:charDelay;ln.append(span);}
+    for(const ch of text){
+      if(ch===GAP){const gap=document.createElement('span');gap.className='verse-gap';gap.textContent='\u3000';gap.setAttribute('aria-hidden','true');ln.append(gap);continue;}
+      const span=document.createElement('span');span.className='ch';span.textContent=ch;span.style.transitionDelay=delay+'ms';delay+=isIns?8:charDelay;ln.append(span);
+    }
     poemEl.append(ln);
   }
   pages[page].forEach(line=>appendColumn(line));
-  if(inscription) split(inscription,Math.max(8,Math.floor(availableHeight/13))).forEach(line=>appendColumn(line,true));
+  if(inscription) split(inscription,best.insPer).forEach(line=>appendColumn(line,true));
   const seal=document.createElement('div');seal.className='seal';
   const sc=customSeal || SEALS[currentSealIndex];
   sc.chars.forEach(ch=>{const span=document.createElement('span');span.textContent=ch;span.setAttribute('aria-hidden','true');seal.append(span);});
@@ -2074,14 +2140,50 @@ let uploadedImageData = null;
 let uploadedImageAnalysis = null;
 let uploadedPdfText = '';
 
-// Load saved API Key if any
-const savedApiKey = localStorage.getItem('moyun_gemini_api_key') || '';
-if ($('inputApiKey') && savedApiKey) $('inputApiKey').value = savedApiKey;
-if ($('inputApiKey')) {
-  $('inputApiKey').addEventListener('change', e => {
-    localStorage.setItem('moyun_gemini_api_key', e.target.value.trim());
+/* ───────── AI 大腦設定：本機／Gemini／GPT／Claude ───────── */
+(function initAiSettings(){
+  const C=window.MoyunCloud;if(!C)return;
+  const radios=[...document.querySelectorAll('input[name="aiProvider"]')];
+  const panel=$('aiProviderPanel'),keyIn=$('aiKeyInput'),modelSel=$('aiModelSelect'),modelCustom=$('aiModelCustom'),result=$('aiTestResult');
+  const routeRow=$('aiRouteRow'),routeSel=$('aiRouteSelect'),baseIn=$('aiBaseInput');
+  routeSel.replaceChildren(...Object.entries(C.PROVIDERS.openai.routes).map(([id,r])=>{const o=document.createElement('option');o.value=id;o.textContent=r.label;return o;}));
+  let current=C.getConfig().provider;
+  const route=()=>current==='openai'?C.getRoute():'';
+  function render(){
+    radios.forEach(r=>r.checked=r.value===current);
+    panel.hidden=current==='local';result.replaceChildren();
+    if(current==='local')return;
+    const P=C.routeInfo(current,route());
+    routeRow.hidden=current!=='openai';
+    if(current==='openai'){routeSel.value=route();baseIn.hidden=route()!=='custom';baseIn.value=C.store.get('moyun_openai_base');}
+    keyIn.value=C.store.get(C.keySlot(current,route()));keyIn.placeholder=P.keyHint;keyIn.type='password';$('aiKeyToggle').textContent='顯示';
+    modelSel.replaceChildren(...P.models.map(([id,label])=>{const o=document.createElement('option');o.value=id;o.textContent=label;return o;}));
+    const saved=C.store.get('moyun_model_'+current);
+    if(saved&&P.models.some(m=>m[0]===saved)){modelSel.value=saved;modelCustom.value='';}else{modelCustom.value=saved||'';}
+    $('aiKeyLink').href=P.keyUrl;$('aiKeyLink').textContent='🔑 申請／管理 '+(current==='openai'&&route()==='openrouter'?'OpenRouter':P.short)+' API Key ↗';$('aiDocLink').href=P.docUrl;
+    $('aiHowto').replaceChildren(...P.steps.map(t=>{const li=document.createElement('li');li.textContent=t;return li;}));
+  }
+  const saveModel=()=>C.store.set('moyun_model_'+current,(modelCustom.value.trim()||modelSel.value));
+  radios.forEach(r=>r.addEventListener('change',()=>{if(!r.checked)return;current=r.value;C.store.set('moyun_ai_provider',current==='local'?'':current);render();}));
+  routeSel.addEventListener('change',()=>{C.store.set('moyun_openai_route',routeSel.value);render();});
+  baseIn.addEventListener('input',()=>C.store.set('moyun_openai_base',baseIn.value.trim()));
+  keyIn.addEventListener('input',()=>C.store.set(C.keySlot(current,route()),keyIn.value.trim()));
+  modelSel.addEventListener('change',()=>{modelCustom.value='';saveModel();});
+  modelCustom.addEventListener('input',saveModel);
+  $('aiKeyToggle').addEventListener('click',()=>{const show=keyIn.type==='password';keyIn.type=show?'text':'password';$('aiKeyToggle').textContent=show?'隱藏':'顯示';$('aiKeyToggle').setAttribute('aria-pressed',String(show));});
+  $('aiClearBtn').addEventListener('click',()=>{C.store.set(C.keySlot(current,route()),'');if(current==='gemini')C.store.set('moyun_gemini_api_key','');keyIn.value='';result.textContent='已清除此瀏覽器中的金鑰。';});
+  $('aiTestBtn').addEventListener('click',async()=>{
+    saveModel();C.store.set(C.keySlot(current,route()),keyIn.value.trim());
+    const btn=$('aiTestBtn');btn.disabled=true;btn.textContent='測試中…';result.textContent='正在連線…';
+    try{
+      const r=await C.testConnection(C.getConfig());result.replaceChildren();
+      for(const st of r.steps){const d=document.createElement('div');d.className=st.ok===true?'ok':st.ok===false?'bad':'warn';d.textContent=(st.ok===true?'✅ ':st.ok===false?'❌ ':'⚠️ ')+st.text;result.append(d);
+        if(st.detail){const det=document.createElement('details'),sm=document.createElement('summary');sm.textContent='原始訊息';det.append(sm,document.createTextNode(st.detail));result.append(det);}}
+    }catch(e){result.textContent='❌ '+e.message;}
+    finally{btn.disabled=false;btn.textContent='🔌 測試連線';}
   });
-}
+  render();
+})();
 
 function openArtModal(){
   artModal.classList.add('open');
@@ -2276,31 +2378,19 @@ async function handleDocumentFile(file){
   }
 }
 
-/* ───────── 忠於原文的雲端釋義：不再要求重寫五言絕句 ───────── */
-async function callGeminiForAnalysis(apiKey, input, analysis, imageBase64 = null) {
-  const parts = [{ text: window.MoyunLiterary.buildCloudPrompt(input, analysis) }];
-  if (imageBase64) {
-    const mime = /^data:([^;]+);/.exec(imageBase64)?.[1] || 'image/jpeg';
-    parts.push({inlineData:{mimeType:mime,data:imageBase64.split(',')[1] || imageBase64}});
+/* ───────── 雲端釋義：依設定呼叫 Gemini／GPT／Claude，回覆逐項回查原文 ───────── */
+async function callCloudForAnalysis(input, analysis, imageBase64 = null) {
+  const cfg=window.MoyunCloud?.getConfig();
+  if(!cfg||cfg.provider==='local'||!cfg.key)return analysis;
+  try{
+    const r=await window.MoyunCloud.analyze(input,analysis,imageBase64,cfg);
+    if(r&&!r.cloudNote)r.cloudNote='已由 '+r.cloudProvider+' 補充釋義並通過原文回查。';
+    else if(r)r.cloudNote=r.cloudProvider+'：'+r.cloudNote;
+    return r||analysis;
+  }catch(error){
+    console.warn('[墨韻雲端]',error);
+    return {...analysis,cloudStatus:cfg.label+' 未能使用，改用本機構思。原因：'+(error.message||error)};
   }
-  const schema = {type:'OBJECT',properties:{
-    meaning:{type:'STRING'},focus:{type:'STRING'},representation:{type:'STRING',enum:['literal','symbolic','calligraphy']},
-    note:{type:'STRING'},elements:{type:'ARRAY',items:{type:'OBJECT',properties:{id:{type:'STRING',enum:Object.keys(window.MoyunLiterary.MOTIFS)},evidence:{type:'STRING'}},required:['id','evidence']}},
-    yijing:{type:'OBJECT',properties:{
-      emotion:{type:'STRING',enum:window.MoyunYijing.ENUMS.emotion},time:{type:'STRING',enum:window.MoyunYijing.ENUMS.time},
-      season:{type:'STRING',enum:window.MoyunYijing.ENUMS.season.filter(Boolean).concat('none')},weather:{type:'STRING',enum:window.MoyunYijing.ENUMS.weather},
-      viewpoint:{type:'STRING',enum:window.MoyunYijing.ENUMS.viewpoint},scale:{type:'STRING',enum:window.MoyunYijing.ENUMS.scale},
-      emptiness:{type:'NUMBER'},focal:{type:'STRING'},reading:{type:'STRING'},composition:{type:'STRING'}
-    },required:['emotion','time','weather','viewpoint','scale','emptiness','reading','composition']}
-  },required:['meaning','focus','representation','note','elements','yijing']};
-  const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
-    method:'POST',signal:AbortSignal.timeout(25000),headers:{'Content-Type':'application/json','x-goog-api-key':apiKey},
-    body:JSON.stringify({systemInstruction:{parts:[{text:window.MoyunLiterary.SYSTEM_PROMPT}]},contents:[{parts}],generationConfig:{temperature:.2,responseMimeType:'application/json',responseSchema:schema}})
-  });
-  if (!response.ok) throw new Error('雲端釋義暫時無法使用（'+response.status+'）');
-  const result = await response.json();
-  const raw = (result.candidates?.[0]?.content?.parts || []).map(p=>p.text||'').join('');
-  return window.MoyunLiterary.validateCloudPlan(JSON.parse(raw),input,analysis);
 }
 function yijingChips(y){
   if(!y)return [];
@@ -2373,10 +2463,7 @@ modalSubmitBtn.addEventListener('click', async () => {
   const revision=++creationRevision;
   modalSubmitBtn.disabled=true;modalSubmitBtn.textContent='依原文凝神構思…';
   let analysis=analyzeLiteraryConcept(effectiveText);
-  const apiKey=$('inputApiKey').value.trim();
-  try {
-    if(apiKey)analysis=await callGeminiForAnalysis(apiKey,effectiveText,analysis,currentActiveTab==='image'?uploadedImageData:null);
-  } catch(error){analysis.cloudStatus='雲端釋義未通過或連線失敗，使用本機文本構思。';}
+  try { analysis=await callCloudForAnalysis(effectiveText,analysis,currentActiveTab==='image'?uploadedImageData:null); }
   finally {modalSubmitBtn.disabled=false;modalSubmitBtn.textContent='🖌️ 意境推演並揮毫創作';}
   if(revision!==creationRevision)return;
   const style=$('selectStyle').value;
@@ -2633,11 +2720,7 @@ modalSubmitBtn.addEventListener('click', async () => {
     closeReaderModal();closePoetryModal();
     const revision=++creationRevision;
     showAnalysisToast(analysis);
-    const apiKey=$('inputApiKey').value.trim();
-    if(apiKey) {
-      try {analysis=await callGeminiForAnalysis(apiKey,item,analysis);}
-      catch(error){analysis.cloudStatus='雲端釋義未通過或連線失敗，使用本機文本構思。';}
-    }
+    analysis=await callCloudForAnalysis(item,analysis);
     if(revision!==creationRevision)return;
     showAnalysisToast(analysis);ensureAudio();startPainting(paintingConfig(analysis));
   }

@@ -52,9 +52,19 @@
 
 本機引擎是**規則分析、專篇釋義與程序筆墨**，並非重新訓練的語言模型或影像模型。它能限制缺乏文本依據的景物，但不能保證所有複雜古文的哲思、用典與藝術表現已完全解讀。保守分析須與原典精讀交叉核對。
 
-選填 Gemini API Key 後，創作會將該篇文字（圖片模式含所選圖片）傳送至 Google Gemini 補充釋義。雲端提示詞要求辨別否定、修辭、敘事時地與主旨，並回傳意境欄位（情感、時令、三遠、留白、焦點、意境解讀）；意境欄位逐項以列舉值與已核定物象校驗，名篇意境校訂不被覆寫；回傳結構化構圖資料，景物須附連續原文依據。不存在的引句、景物、重複項目和衝突結果會退回本機構思；有專篇釋義時，雲端只能補充說明，不推翻已核定的取景。
+在「意境創作 → ⚙️ AI 創作大腦設定」可選擇四種大腦：
 
-雲端不再改寫原詩為五言絕句。使用低溫度結構化輸出、25 秒逾時與本機回退。實際 API 可用性仍取決於帳號、模型與服務狀態。
+| 大腦 | 金鑰申請 | 預設模型 | 說明 |
+|---|---|---|---|
+| 本機引擎 | 免金鑰 | — | 規則分析、專篇釋義與意境解析，離線可用。 |
+| Google Gemini | [AI Studio](https://aistudio.google.com/app/apikey) | `gemini-3.8-flash` | 有免費層（用量上限）；Gemini 2.5 已限既有使用者。 |
+| OpenAI GPT | [OpenRouter](https://openrouter.ai/settings/keys)（預設）／[OpenAI Platform](https://platform.openai.com/api-keys) | `gpt-6-luna` | OpenAI 官方 API 不允許瀏覽器直連（CORS），純網頁預設經 OpenRouter 轉接同款模型；也可填自架的 OpenAI 相容端點。需先儲值。 |
+| Anthropic Claude | [Claude Console](https://platform.claude.com/settings/keys) | `claude-sonnet-5-5` | API 與 Claude 訂閱分開計費，需先購買額度。 |
+
+- 每家金鑰分開儲存在本機瀏覽器，可隨時「清除此金鑰」；模型可從清單選擇，或填自訂模型代碼（各家改版時不必改程式）。
+- 「🔌 測試連線」分兩步：①查詢模型（不耗額度，確認金鑰與模型代碼）②極短生成（確認額度與付費已開通）。錯誤會轉成中文說明：金鑰無效、模型不存在、額度不足、請求過快、網路或防火牆阻擋等。
+- 三家都以 JSON Schema 結構化輸出回傳主旨、取景與意境欄位；若模型不接受結構化參數，會自動改以提示詞要求 JSON 再試一次。回覆逐項回查原文，不存在的引句、景物或衝突結果退回本機構思；名篇意境校訂不被覆寫。
+- 創作時會將該篇文字（圖片模式含所選圖片）直接從瀏覽器送到所選服務，費用依各家帳戶計算。雲端失敗時自動改用本機構思，並在意境說明中寫明原因。
 
 原有互動濃墨、朱砂、清水、洗紙、古琴與日夜主題均保留。「依文落筆」會隨機選篇並走同一套原文構圖管線。主畫布與本機詩文分析無網路依賴；線上字型、PDF.js 與選配雲端分析需要網路，PDF 的離線使用須另行快取依賴。
 
@@ -64,6 +74,7 @@
 python3 -m http.server 8000 --bind 127.0.0.1
 # 瀏覽 http://127.0.0.1:8000/
 node scripts/test-literary.cjs
+node scripts/test-cloud.cjs
 node scripts/build-literary-catalog.cjs
 ```
 
@@ -78,7 +89,9 @@ node scripts/build-literary-catalog.cjs
 | literary_profiles.js | 96 篇專篇釋義、原文焦點、分景和限制。 |
 | literary_engine.js | 全庫文本分析、題字選取、原文驗證與雲端提示詞。 |
 | literary_yijing.js | 意境解析：情感、時令、三遠構圖、留白、筆墨與名篇意境校訂。 |
+| literary_cloud.js | 雲端 AI 大腦：Gemini／GPT／Claude 請求轉接、結構化輸出、測試連線與錯誤說明。 |
 | literary_painter.js | 依意境分層構圖的景物筆墨；每筆標記對應物象。 |
+| scripts/test-cloud.cjs | 以模擬連線檢查三家請求格式、結構化綱要、重試與錯誤說明（不需金鑰）。 |
 | scripts/test-literary.cjs | 全庫原文一致性、繪畫約束、修辭反例、意境判讀與雲端回覆驗證。 |
 | docs/詩文創作分析索引.md | 543 篇的主旨、分析層級、選景、證據與題字索引。 |
 
@@ -87,6 +100,7 @@ node scripts/build-literary-catalog.cjs
 - 原典與原有導賞：[中國古詩文精讀](https://www.classicalchineseliterature.org/)，各篇保留原網址。
 - 病梅釋義依據：[病梅館記原文與導賞](https://www.classicalchineseliterature.org/article.php?article=%E7%97%85%E6%A2%85%E9%A4%A8%E8%A8%98)。
 - 雲端結構化回覆：[Gemini generateContent 官方文件](https://ai.google.dev/api/generate-content)。
+- [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)、[Claude Structured Outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)、[Gemini 模型清單](https://ai.google.dev/gemini-api/docs/models)。
 - 原始作品：[Axton Liu / moyun](https://github.com/axtonliu/moyun)。
 - 流體模擬：Jos Stam, *Stable Fluids*；Mark Harris, *Fast Fluid Dynamics Simulation on the GPU*；Pavel Dobryakov 的 WebGL Fluid Simulation。
 - 古琴合成：Karplus–Strong 撥弦演算法。字型：Google Fonts 馬善政、思源宋體與思源黑體。
