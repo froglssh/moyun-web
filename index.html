@@ -3,25 +3,28 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="一張會呼吸的宣紙：GPU 即時解流體方程的水墨，五聲音階的古琴，一隻看不見的手當場揮灑一幅從未存在過的山水。">
+<meta name="description" content="一張會呼吸的宣紙：GPU 即時解流體方程的水墨，五聲音階的古琴，一隻看不見的手當場揮灑一幅從未存在過的山水。支援輸入文字、上傳圖片或PDF，AI自動依意境創作書法畫。">
 <meta property="og:type" content="website">
-<meta property="og:title" content="墨韻 Moyun">
-<meta property="og:description" content="一張會呼吸的宣紙：GPU 即時解流體方程的水墨，五聲音階的古琴，一隻看不見的手當場揮灑一幅從未存在過的山水。">
+<meta property="og:title" content="墨韻 Moyun · 意境創作書法畫">
+<meta property="og:description" content="一張會呼吸的宣紙：GPU 即時解流體方程的水墨，五聲音階的古琴，支援文字、圖片、PDF 文件意境推演，創作書法畫。">
 <meta property="og:url" content="https://froglssh.github.io/moyun-web/">
 <meta property="og:image" content="media/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="墨韻 Moyun">
-<meta name="twitter:description" content="一張會呼吸的宣紙：GPU 即時解流體方程的水墨，五聲音階的古琴，一隻看不見的手當場揮灑一幅從未存在過的山水。">
+<meta name="twitter:title" content="墨韻 Moyun · 意境創作書法畫">
+<meta name="twitter:description" content="一張會呼吸的宣紙：GPU 即時水墨流體模擬，支援文字、圖片、PDF 文件意境推演，創作書法畫。">
 <meta name="twitter:image" content="media/og.jpg">
 <meta name="theme-color" content="#ECE8DD">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' rx='3' fill='%23B03A2A'/%3E%3C/svg%3E">
 <style>:root{color-scheme:light}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>墨韻 Moyun · 一張會呼吸的紙</title>
+<title>墨韻 Moyun · 一張會呼吸的紙 · 意境創作</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+TC:wght@400;600;900&family=Noto+Sans+TC:wght@400;500&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<!-- PDF.js for parsing PDF document atmosphere -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <style>
 :root{
   --paper:#ECE8DD; --paper-2:#DCD5C4;
@@ -60,30 +63,32 @@ html,body{height:100%}
 body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overflow:hidden;-webkit-font-smoothing:antialiased}
 #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
 
-.mast{position:fixed;top:calc(env(safe-area-inset-top,0px) + 22px);right:22px;writing-mode:vertical-rl;display:flex;gap:10px;align-items:flex-start;pointer-events:none;user-select:none}
+.mast{position:fixed;top:calc(env(safe-area-inset-top,0px) + 22px);right:22px;writing-mode:vertical-rl;display:flex;gap:10px;align-items:flex-start;pointer-events:none;user-select:none;z-index:4}
 .mast h1{margin:0;font-family:var(--font-brush);font-weight:400;font-size:clamp(34px,5vmin,52px);line-height:1;letter-spacing:.08em;color:var(--ink)}
 .mast p{margin:0;padding-top:.5em;font-size:13px;letter-spacing:.42em;color:var(--ink-soft)}
 
-.poem{position:fixed;top:calc(env(safe-area-inset-top,0px) + 30px);left:26px;writing-mode:vertical-rl;font-family:var(--font-brush);font-size:clamp(21px,3.3vmin,34px);line-height:1.62;letter-spacing:.2em;color:var(--ink);pointer-events:none;user-select:none}
+.poem{position:fixed;top:calc(env(safe-area-inset-top,0px) + 30px);left:26px;writing-mode:vertical-rl;font-family:var(--font-brush);font-size:clamp(21px,3.3vmin,34px);line-height:1.62;letter-spacing:.2em;color:var(--ink);pointer-events:none;user-select:none;z-index:4}
 .poem .ln{display:block}
+.poem .ln.ln-ins{font-size:0.65em;color:var(--ink-soft);letter-spacing:0.12em;margin-right:0.35em}
 .poem .ch{display:inline-block;opacity:0;filter:blur(6px);transform:translateY(-.08em);transition:opacity 1s ease,filter 1.3s ease,transform 1.3s ease}
 .poem.on .ch{opacity:.92;filter:blur(0);transform:none}
 .seal{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;place-items:center;margin-top:auto;margin-right:.55em;width:2.5em;height:2.5em;box-sizing:border-box;padding:.18em;background:var(--cinnabar);color:var(--seal-text);font-size:.5em;line-height:1;letter-spacing:0;writing-mode:horizontal-tb;text-align:center;border-radius:2px 3px 2px 4px;mix-blend-mode:var(--seal-blend);opacity:0;transform:scale(1.6) rotate(-8deg);transition:opacity .18s ease-in,transform .22s cubic-bezier(.3,1.6,.5,1);pointer-events:auto;cursor:pointer}
 .seal.on{opacity:.9;transform:rotate(-2deg)}
 
-.ghost{position:fixed;left:0;top:0;width:14px;height:14px;margin:-7px 0 0 -7px;border:1px solid var(--ink);border-radius:50%;opacity:0;pointer-events:none;transition:opacity .4s}
+.ghost{position:fixed;left:0;top:0;width:14px;height:14px;margin:-7px 0 0 -7px;border:1px solid var(--ink);border-radius:50%;opacity:0;pointer-events:none;transition:opacity .4s;z-index:3}
 .ghost.on{opacity:.4}
 
-.hint{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 86px);transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);text-align:center;font-size:13px;letter-spacing:.12em;color:var(--ink-faint);pointer-events:none;transition:opacity 1.2s}
+.hint{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 86px);transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);text-align:center;font-size:13px;letter-spacing:.12em;color:var(--ink-faint);pointer-events:none;transition:opacity 1.2s;z-index:4}
 .hint.gone{opacity:0}
 
 .bar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px 4px;width:max-content;max-width:calc(100% - 32px);box-sizing:border-box;padding:5px 10px;background:var(--veil);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:4px;box-shadow:0 8px 30px rgba(0,0,0,.08);z-index:10}
-.bar button{appearance:none;background:none;border:0;margin:0;min-height:40px;padding:0 9px;font:inherit;font-size:15px;letter-spacing:.08em;color:var(--ink-soft);cursor:pointer;background-repeat:no-repeat;background-position:50% calc(100% - 6px);background-size:0 2px;transition:color .2s,background-size .25s,transform .1s}
+.bar button{appearance:none;background:none;border:0;margin:0;min-height:40px;padding:0 8px;font:inherit;font-size:14.5px;letter-spacing:.08em;color:var(--ink-soft);cursor:pointer;background-repeat:no-repeat;background-position:50% calc(100% - 6px);background-size:0 2px;transition:color .2s,background-size .25s,transform .1s}
 .bar button:hover{color:var(--ink)}
 .bar button:active{transform:scale(0.97)}
 .bar button:focus-visible,.sheet button:focus-visible{outline:1px solid var(--ink);outline-offset:2px}
-.bar .primary{color:var(--ink);font-weight:600;display:inline-flex;align-items:center;gap:8px}
-.bar .primary::before{content:"";width:8px;height:8px;background:var(--cinnabar);border-radius:1px}
+.bar .primary{color:var(--ink);font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.bar .primary::before{content:"";width:7px;height:7px;background:var(--cinnabar);border-radius:1px}
+.bar .creation-highlight{color:var(--cinnabar);font-weight:600;display:inline-flex;align-items:center;gap:5px;background-image:linear-gradient(var(--cinnabar),var(--cinnabar))}
 .tools{display:flex}
 .tools button{background-image:linear-gradient(var(--ink),var(--ink))}
 .tools button[data-tool="cinnabar"]{background-image:linear-gradient(var(--cinnabar),var(--cinnabar))}
@@ -103,9 +108,196 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
 .pane .try{color:var(--ink-soft);font-style:italic}
 .readout{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line);font-family:var(--font-mono);font-size:11.5px;line-height:1.7;color:var(--ink-faint);font-variant-numeric:tabular-nums;letter-spacing:.02em}
 .corner{position:fixed;left:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);font-family:var(--font-mono);font-size:11px;color:var(--ink-faint);font-variant-numeric:tabular-nums;pointer-events:none;opacity:.8;z-index:5}
+
+/* ─── 意境創作彈窗與神思浮動面板 ─── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(18, 20, 24, 0.72);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 16px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.28s ease;
+}
+.modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+.modal-card {
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 6px;
+  box-shadow: 0 24px 65px rgba(0,0,0,0.38);
+  width: min(720px, calc(100% - 24px));
+  max-height: min(88vh, 760px);
+  display: flex; flex-direction: column; overflow: hidden;
+  transform: translateY(18px) scale(0.98);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modal-overlay.open .modal-card { transform: translateY(0) scale(1); }
+
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 22px 14px; border-bottom: 1px solid var(--line);
+}
+.modal-header h2 {
+  margin: 0; font-family: var(--font-brush); font-size: 24px; font-weight: normal; letter-spacing: 0.1em;
+  display: flex; align-items: center; gap: 8px; color: var(--ink);
+}
+.modal-header h2 span.badge {
+  font-family: var(--font-body); font-size: 11.5px; letter-spacing: 0.05em;
+  background: var(--cinnabar); color: #fff; padding: 2px 7px; border-radius: 3px; font-weight: normal;
+}
+.modal-close {
+  background: none; border: 0; font-size: 22px; cursor: pointer; color: var(--ink-soft);
+  width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%;
+  transition: background 0.2s, color 0.2s;
+}
+.modal-close:hover { background: var(--line); color: var(--ink); }
+
+.modal-body {
+  padding: 18px 22px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;
+}
+.modal-tabs {
+  display: flex; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 6px;
+}
+.modal-tab-btn {
+  appearance: none; background: none; border: 0; padding: 7px 14px;
+  font: inherit; font-size: 14px; letter-spacing: 0.06em;
+  color: var(--ink-faint); cursor: pointer; border-radius: 4px;
+  transition: all 0.2s;
+}
+.modal-tab-btn:hover { color: var(--ink); background: rgba(0,0,0,0.03); }
+.modal-tab-btn.active {
+  color: var(--ink); font-weight: 600; background: var(--line);
+}
+
+.input-panel { display: none; flex-direction: column; gap: 10px; }
+.input-panel.active { display: flex; }
+
+.text-prompt-area {
+  width: 100%; box-sizing: border-box; min-height: 105px; padding: 12px 14px;
+  font-family: var(--font-body); font-size: 14.5px; line-height: 1.7;
+  color: var(--ink); background: rgba(0,0,0,0.02);
+  border: 1px solid var(--line); border-radius: 4px; resize: vertical;
+}
+.text-prompt-area:focus { outline: 1px solid var(--ink); border-color: var(--ink); }
+
+.chips-row {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+}
+.chips-title { font-size: 12px; color: var(--ink-faint); margin-right: 4px; }
+.preset-chip {
+  appearance: none; background: none; border: 1px solid var(--line);
+  padding: 3px 9px; font-size: 12px; letter-spacing: 0.04em;
+  border-radius: 3px; color: var(--ink-soft); cursor: pointer;
+  transition: all 0.18s;
+}
+.preset-chip:hover { border-color: var(--ink-soft); color: var(--ink); background: var(--line); }
+
+.dropzone {
+  border: 2px dashed var(--line); border-radius: 6px; padding: 24px 16px;
+  text-align: center; cursor: pointer; transition: all 0.2s;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: rgba(0,0,0,0.015);
+}
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--cinnabar); background: rgba(176, 58, 42, 0.04);
+}
+.dropzone-icon { font-size: 30px; opacity: 0.85; }
+.dropzone-text { font-size: 14px; color: var(--ink-soft); }
+.dropzone-subtext { font-size: 12px; color: var(--ink-faint); }
+
+.file-preview-card {
+  display: none; align-items: center; gap: 14px; padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: 4px; background: rgba(0,0,0,0.02);
+}
+.file-preview-card.show { display: flex; }
+.file-preview-thumb {
+  width: 58px; height: 58px; object-fit: cover; border-radius: 3px; border: 1px solid var(--line);
+}
+.file-preview-info { flex: 1; min-width: 0; font-size: 13px; }
+.file-preview-info b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-preview-meta { font-size: 11.5px; color: var(--ink-faint); margin-top: 3px; }
+.file-remove-btn {
+  background: none; border: 0; color: var(--cinnabar); cursor: pointer; font-size: 13px; padding: 4px;
+}
+
+.options-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 2px;
+}
+@media (max-width: 580px){ .options-grid { grid-template-columns: 1fr; } }
+
+.option-group label {
+  display: block; font-size: 12px; color: var(--ink-soft); margin-bottom: 4px; font-weight: 600;
+}
+.option-select, .option-input {
+  width: 100%; box-sizing: border-box; padding: 7px 10px; font-family: var(--font-body);
+  font-size: 13px; color: var(--ink); background: var(--paper);
+  border: 1px solid var(--line); border-radius: 3px;
+}
+.option-select:focus, .option-input:focus { outline: 1px solid var(--ink); }
+
+.ai-engine-fold {
+  border: 1px solid var(--line); border-radius: 4px; padding: 9px 12px; background: rgba(0,0,0,0.015);
+}
+.ai-engine-fold summary {
+  cursor: pointer; font-size: 12.5px; color: var(--ink-soft); font-weight: 600; user-select: none;
+}
+.ai-engine-content {
+  margin-top: 8px; font-size: 12px; line-height: 1.6; color: var(--ink-soft);
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+.modal-footer {
+  padding: 12px 22px 16px; border-top: 1px solid var(--line);
+  display: flex; justify-content: flex-end; align-items: center; gap: 10px;
+}
+.btn-secondary {
+  appearance: none; background: none; border: 1px solid var(--line);
+  padding: 7px 15px; font: inherit; font-size: 13.5px; color: var(--ink-soft);
+  border-radius: 4px; cursor: pointer; transition: all 0.2s;
+}
+.btn-secondary:hover { color: var(--ink); border-color: var(--ink-soft); }
+.btn-primary {
+  appearance: none; background: var(--cinnabar); border: 0; color: #fff;
+  padding: 8px 18px; font: inherit; font-size: 14px; font-weight: 600;
+  border-radius: 4px; cursor: pointer; letter-spacing: 0.06em;
+  box-shadow: 0 4px 14px rgba(176, 58, 42, 0.28); transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ─── 神思意境析鑑浮動提示 ─── */
+.insight-toast {
+  position: fixed; top: calc(env(safe-area-inset-top, 0px) + 20px); left: 50%;
+  transform: translateX(-50%) translateY(-24px);
+  background: var(--veil); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border: 1px solid var(--line); border-radius: 6px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+  padding: 14px 20px; z-index: 50; width: min(540px, calc(100% - 32px));
+  opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.insight-toast.show {
+  opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto;
+}
+.insight-toast-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+}
+.insight-toast-title {
+  font-family: var(--font-brush); font-size: 18px; color: var(--ink); display: flex; align-items: center; gap: 6px;
+}
+.insight-toast-close {
+  background: none; border: 0; cursor: pointer; color: var(--ink-faint); font-size: 16px; padding: 2px 6px;
+}
+.insight-toast-body {
+  font-size: 13px; line-height: 1.7; color: var(--ink-soft);
+}
+.insight-tag {
+  display: inline-block; background: var(--cinnabar); color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 2px; margin-right: 6px;
+}
+
 @media (max-width:980px){.corner{display:none}}
 @media (max-width:640px){
-  .bar button{font-size:14px;padding:0 6px;letter-spacing:.04em}
+  .bar button{font-size:13.5px;padding:0 5px;letter-spacing:.02em}
   .sep{display:none}
   .hint{bottom:calc(env(safe-area-inset-bottom,0px) + 124px)}
   .sheet{bottom:calc(env(safe-area-inset-bottom,0px) + 120px);padding:16px 18px}
@@ -126,6 +318,8 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
 <p class="corner" id="corner"></p>
 
 <nav class="bar" aria-label="工具列">
+  <button id="creationBtn" class="creation-highlight" title="輸入文字、上傳圖片或PDF，AI自動依意境創作書法畫">✨ 意境創作</button>
+  <span class="sep"></span>
   <button id="paint" class="primary">落筆山水</button>
   <span class="sep"></span>
   <div class="tools" role="radiogroup" aria-label="畫筆">
@@ -141,6 +335,124 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
   <button id="about" aria-expanded="false" aria-controls="sheet">背後</button>
 </nav>
 
+<!-- 意境析鑑浮動提示 -->
+<div class="insight-toast" id="insightToast" role="status" aria-live="polite">
+  <div class="insight-toast-header">
+    <div class="insight-toast-title">
+      <span class="insight-tag" id="toastBadge">意境</span>
+      <span id="toastTitle">神思賦畫 · 詩情已就</span>
+    </div>
+    <button class="insight-toast-close" id="toastCloseBtn" aria-label="關閉">✕</button>
+  </div>
+  <div class="insight-toast-body" id="toastBody">
+    正依據文意思索畫境，調弦撫琴，運筆落墨...
+  </div>
+</div>
+
+<!-- 意境創作對話視窗 -->
+<div class="modal-overlay" id="artModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2 id="modalTitle">神思賦畫 · 意境創作 <span class="badge">詩畫合璧</span></h2>
+      <button class="modal-close" id="modalCloseBtn" aria-label="關閉視窗">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- 標籤切換 -->
+      <div class="modal-tabs" role="tablist">
+        <button class="modal-tab-btn active" data-tab="text" role="tab" aria-selected="true">✍️ 文思詩句</button>
+        <button class="modal-tab-btn" data-tab="image" role="tab" aria-selected="false">🖼️ 上傳圖片</button>
+        <button class="modal-tab-btn" data-tab="pdf" role="tab" aria-selected="false">📄 PDF / 文章文件</button>
+      </div>
+
+      <!-- Tab 1: 文字輸入 -->
+      <div class="input-panel active" id="panelText">
+        <textarea class="text-prompt-area" id="inputText" placeholder="請在此輸入詩文短句、心情感悟、生活所思，或經典詩詞...&#10;（例如：「孤舟蓑笠翁，獨釣寒江雪」、「行到水窮處，坐看雲起時」、「秋水共長天一色」）"></textarea>
+        <div class="chips-row">
+          <span class="chips-title">靈感題庫：</span>
+          <button class="preset-chip" data-text="空山不見人，但聞人語響。返景入深林，復照青苔上。">空山青苔</button>
+          <button class="preset-chip" data-text="千山鳥飛絕，萬徑人蹤滅。孤舟蓑笠翁，獨釣寒江雪。">寒江雪釣</button>
+          <button class="preset-chip" data-text="落霞與孤鶩齊飛，秋水共長天一色。夕照橫江，煙波無盡。">落霞秋水</button>
+          <button class="preset-chip" data-text="竹外桃花三兩枝，春江水暖鴨先知。蔞蒿滿地蘆芽短，春風初度。">春水初生</button>
+          <button class="preset-chip" data-text="大江東去，浪淘盡，千古風流人物。星垂平野闊，月湧大江流。">大江豪氣</button>
+          <button class="preset-chip" data-text="行到水窮處，坐看雲起時。偶然值林叟，談笑無還期。">坐看雲起</button>
+        </div>
+      </div>
+
+      <!-- Tab 2: 圖片上傳 -->
+      <div class="input-panel" id="panelImage">
+        <div class="dropzone" id="imageDropzone">
+          <span class="dropzone-icon">🖼️</span>
+          <span class="dropzone-text">點擊選取或將圖片拖曳至此處</span>
+          <span class="dropzone-subtext">支援 JPG、PNG、WEBP。AI 將自動感知圖片色溫、明暗與構圖意象</span>
+          <input type="file" id="imageFileInput" accept="image/*" style="display:none">
+        </div>
+        <div class="file-preview-card" id="imagePreviewCard">
+          <img class="file-preview-thumb" id="imageThumb" alt="上傳圖片預覽">
+          <div class="file-preview-info">
+            <b id="imageFileName">image.jpg</b>
+            <div class="file-preview-meta" id="imageVibeText">正在分析色調意象...</div>
+          </div>
+          <button class="file-remove-btn" id="imageRemoveBtn">移除</button>
+        </div>
+      </div>
+
+      <!-- Tab 3: PDF / 文件上傳 -->
+      <div class="input-panel" id="panelPdf">
+        <div class="dropzone" id="pdfDropzone">
+          <span class="dropzone-icon">📜</span>
+          <span class="dropzone-text">點擊選取或將 PDF / TXT 文件拖曳至此處</span>
+          <span class="dropzone-subtext">AI 將提取文章重點與意象核心，推演提煉為絕句詩畫</span>
+          <input type="file" id="pdfFileInput" accept=".pdf,.txt,.md" style="display:none">
+        </div>
+        <div class="file-preview-card" id="pdfPreviewCard">
+          <span style="font-size:32px">📄</span>
+          <div class="file-preview-info">
+            <b id="pdfFileName">document.pdf</b>
+            <div class="file-preview-meta" id="pdfExcerptText">已提取內文摘要...</div>
+          </div>
+          <button class="file-remove-btn" id="pdfRemoveBtn">移除</button>
+        </div>
+      </div>
+
+      <!-- 創作風格與題印設定 -->
+      <div class="options-grid">
+        <div class="option-group">
+          <label for="selectStyle">山水畫境風格</label>
+          <select class="option-select" id="selectStyle">
+            <option value="auto">✨ 由 AI 感知意境自動決定 (推薦)</option>
+            <option value="ethereal">🍃 空靈幽寂 · 留白山川</option>
+            <option value="snow_winter">❄️ 寒江雪景 · 蕭疏寒山</option>
+            <option value="autumn_sunset">🌅 落霞秋水 · 夕照赤壁</option>
+            <option value="vast_river">🛶 煙波浩渺 · 平遠江渚</option>
+            <option value="majestic_peaks">🏔️ 崇山崔嵬 · 萬壑松風</option>
+            <option value="spring_breeze">🌸 春江花暖 · 翠嵐秀嶺</option>
+            <option value="heroic">🌊 豪邁奔騰 · 磅礴狂筆</option>
+          </select>
+        </div>
+        <div class="option-group">
+          <label for="inputInscription">書法落款署名</label>
+          <input type="text" class="option-input" id="inputInscription" placeholder="例：丙申歲次 墨韻神思題" value="墨韻神思題">
+        </div>
+      </div>
+
+      <!-- AI 意境大腦設定 -->
+      <details class="ai-engine-fold">
+        <summary>⚙️ AI 創作大腦設定 (可選填 API Key)</summary>
+        <div class="ai-engine-content">
+          <div>本系統預設內建<b>「神思古典意境推演大腦」</b>，完全在瀏覽器本機即時演算，零延遲且免金鑰。</div>
+          <div>若您有 <b>Google Gemini API Key</b>，可填於下方，系統將啟動雲端多模態大模型進行更為深微的原創古體詩賦創作：</div>
+          <input type="password" class="option-input" id="inputApiKey" placeholder="選填：貼上 Gemini API Key (以 AIzaSy... 開頭)">
+          <div style="font-size:11px;color:var(--ink-faint)">金鑰僅暫存於您的本機瀏覽器中，絕不上傳第三方伺服器。</div>
+        </div>
+      </details>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="modalCancelBtn">取消</button>
+      <button class="btn-primary" id="modalSubmitBtn">🖌️ 意境推演並揮毫創作</button>
+    </div>
+  </div>
+</div>
+
 <section class="sheet" id="sheet" hidden aria-label="這張紙背後的原理">
   <div class="tabs" role="tablist">
     <button role="tab" aria-selected="true" data-tab="kid">講給孩子</button>
@@ -150,12 +462,12 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
   <div class="pane" data-pane="kid">
     <p>這張紙是活的。</p>
     <p>你的手指一劃過去，電腦就把螢幕分成五萬多個微小格子，每個格子都要算清楚：水往哪兒流，墨往哪兒散。一秒鐘計算六十遍，所以墨會像真的滴在宣紙上一樣，自然暈開。</p>
-    <p class="try">試試看：先點「落筆山水」，等畫好了，選「清水」，在畫上用力攪一攪！</p>
+    <p class="try">試試看：先點「落筆山水」或「✨ 意境創作」，等畫好了，選「清水」，在畫上用力攪一攪！</p>
   </div>
   <div class="pane" data-pane="arts" hidden>
     <p>國畫講究「墨分五色」：同一錠墨，水多水少，就分出焦、濃、重、淡、清。這支筆也是這樣。剛蘸的墨色飽滿，越寫越乾，寫到後來自然露出「飛白」。走筆緩慢，墨在紙上洇開；走筆迅疾，筆鋒就細、就枯。</p>
     <p>琴聲只用宮、商、角、徵、羽五個音。五聲音階裡沒有半音之躁，任何兩個音相遇皆不刺耳，所以你怎麼畫都不會走調。約三成的音符自下方滑奏而上，那是古琴的經典「上滑音」與「吟猱」。</p>
-    <p>「落筆山水」遵循古法畫理：先遠山，後主峰；先勾勒輪廓，再行皴擦、渲染、點苔；然後是樹木、水波、漁舟、翔鳥，落一筆朱砂作朝陽，最後題詩、鈐印。山形與詩韻每次隨機演算生成，絕不雷同。</p>
+    <p>「意境創作」更能深契文字、圖片、文章之詩心，自動推演專屬山水意象、書法題詠與朱砂印信，書畫同源，每次皆獨一無二。</p>
   </div>
   <div class="pane" data-pane="eng" hidden>
     <ul>
@@ -747,13 +1059,20 @@ const SEALS = [
   { chars: ['心', '墨', '賞', '韻'], label: '印章：墨韻心賞' },
   { chars: ['德', '克', '印', '勞'], label: '印章：克勞德印' },
   { chars: ['草', '逸', '草', '筆'], label: '印章：逸筆草草' },
-  { chars: ['見', '悠', '山', '然'], label: '印章：悠然見山' }
+  { chars: ['見', '悠', '山', '然'], label: '印章：悠然見山' },
+  { chars: ['寂', '寒', '照', '江'], label: '印章：寒江孤寂' },
+  { chars: ['霞', '落', '水', '秋'], label: '印章：落霞秋水' },
+  { chars: ['春', '生', '物', '萬'], label: '印章：萬物春生' }
 ];
 let currentSealIndex = 0;
 
-function buildLandscape(seed){
+/* ───────── Landscape Generator with Literary Mood Modulation ───────── */
+function buildLandscape(seed, customConfig = null){
   const R = rng(seed), rr = (a, b) => a + (b - a) * R();
   const A = aspect(), portrait = A < .85;
+  const cfg = customConfig || {};
+  const mood = cfg.mood || 'ethereal';
+
   const yb = portrait ? .1 : .085, ys = portrait ? .88 : .9, M = y => yb + y * ys;
   const wx = A < 1 ? Math.min(1.6, .75 / A) : 1;
   const W = d => d / A;
@@ -772,14 +1091,14 @@ function buildLandscape(seed){
 
   function mountain(f, base, o){
     const rs = runs(f, base, o.x0, o.x1, .006, .012); if (!rs.length) return;
-    for (const run of rs) S(run, { r: .0042 * o.s, ink: 1.05 * o.ink, water: .25, dry: .05, dryGrow: .5, fade: .35, speed: .5, note: .085, vel: .5 });
+    for (const run of rs) S(run, { r: .0042 * o.s, ink: 1.05 * o.ink, water: o.water || .25, dry: o.dry || .05, dryGrow: .5, fade: .35, speed: .5, note: .085, vel: .5 });
     const pk = [];
     for (const run of rs) for (let i = 2; i < run.length - 2; i++) if (run[i][1] > run[i-1][1] && run[i][1] >= run[i+1][1] && run[i][1] - base > .06) pk.push(run[i]);
     for (const p of pk.slice(0, o.folds)) {
       const side = R() < .5 ? -1 : 1, len = (p[1] - base) * rr(.45, .75), pts = [];
       let x = p[0], y = p[1] - .004;
       for (let i = 0; i <= 8; i++) { pts.push([x, y]); y -= len / 8; x += W(side * rr(.002, .009)); }
-      S(pts, { r: .0036 * o.s, ink: .8 * o.ink, water: .2, dry: .25, dryGrow: .5, fade: .5, speed: .7, note: .1, after: .05 });
+      S(pts, { r: .0036 * o.s, ink: .8 * o.ink, water: o.water || .2, dry: (o.dry || .25) + .1, dryGrow: .5, fade: .5, speed: .7, note: .1, after: .05 });
     }
     for (let i = 0; i < o.cun; i++) {
       const run = pick(rs), q = run[Math.floor(rr(.05, .95) * run.length)], top = q[1];
@@ -787,9 +1106,9 @@ function buildLandscape(seed){
       const slope = (f(x + .005) - f(x - .005)) / .01, side = slope > 0 ? -1 : 1, L = rr(.02, .045);
       const pts = [[x, y]];
       for (let k = 1; k <= 3; k++) pts.push([x + W(side * L * k / 3 * .55 + rr(-.002, .002)), y - L * k / 3]);
-      S(pts, { r: .0026 * o.s, ink: .6 * o.ink, water: .12, dry: .45, dryGrow: .3, speed: 1.3, note: .06, after: .015, vel: .35 });
+      S(pts, { r: .0026 * o.s, ink: .6 * o.ink, water: .12, dry: (o.dry || .45) + .1, dryGrow: .3, speed: 1.3, note: .06, after: .015, vel: .35 });
     }
-    for (let j = 0; j < 7; j++) {
+    for (let j = 0; j < (o.washCount || 7); j++) {
       const off = .008 + j * .018, ij = .2 * o.ink * (1 - j / 7.5);
       for (const run of runs(x => f(x) - off, base, o.x0, o.x1, .02, .006))
         S(run.map(p => [p[0], p[1]]), { r: .02, ink: ij, water: .8, speed: 2.8, note: .3, after: .02, vel: .25 });
@@ -799,90 +1118,197 @@ function buildLandscape(seed){
       D(q[0] + W(rr(-.004, .004)), q[1] + rr(-.002, .006), { r: rr(.003, .0055) * o.s, ink: rr(.9, 1.4) * o.ink, water: .3, after: .05 });
     }
   }
-  function tree(x, y, h, ink){
+
+  function tree(x, y, h, ink, isWinter = false, foliageCin = 0){
     const ph = rr(0, 6.28), sw = rr(.004, .01), trunk = [];
     for (let i = 0; i <= 12; i++) { const t = i / 12; trunk.push([x + W(Math.sin(t * 3 + ph) * sw * t), y + h * t]); }
-    S(trunk, { r: .0048, ink: 1.1 * ink, water: .2, dry: .2, dryGrow: .5, fade: .3, speed: .55, note: .07, vel: .5 });
+    S(trunk, { r: .0048, ink: 1.1 * ink, water: .2, dry: isWinter ? .5 : .2, dryGrow: .5, fade: .3, speed: .55, note: .07, vel: .5 });
     const tips = [trunk[12]], nb = Math.floor(rr(3, 6));
     for (let b = 0; b < nb; b++) {
       const t = rr(.45, .92), p = trunk[Math.round(t * 12)], side = b % 2 ? 1 : -1, L = rr(.03, .06) * (1.2 - t), pts = [[p[0], p[1]]];
       for (let s = 1; s <= 4; s++) pts.push([p[0] + W(side * L * s / 4), p[1] + L * s / 4 * rr(.1, .45)]);
-      S(pts, { r: .0024, ink: ink, water: .15, dry: .2, speed: .7, note: .06, after: .03 });
+      S(pts, { r: .0024, ink: ink, water: .15, dry: isWinter ? .45 : .2, speed: .7, note: .06, after: .03 });
       tips.push(pts[4]);
     }
-    for (const tp of tips) {
-      const n = Math.floor(rr(6, 10));
-      for (let d = 0; d < n; d++) { const a = rr(0, 6.28), rad = rr(.004, .02); D(tp[0] + W(Math.cos(a) * rad * 1.3), tp[1] + Math.sin(a) * rad * .7, { r: rr(.004, .0068), ink: rr(.6, 1.2) * ink, water: .55, after: .025 }); }
+    if (!isWinter) {
+      for (const tp of tips) {
+        const n = Math.floor(rr(6, 10));
+        for (let d = 0; d < n; d++) {
+          const a = rr(0, 6.28), rad = rr(.004, .02);
+          D(tp[0] + W(Math.cos(a) * rad * 1.3), tp[1] + Math.sin(a) * rad * .7, {
+            r: rr(.004, .0068), ink: rr(.6, 1.2) * ink, cin: foliageCin, water: .55, after: .025
+          });
+        }
+      }
     }
   }
 
-  // 遠山 far range, pale ink
-  const farBase = rr(.36, .4), farPeaks = [];
-  for (let i = 0; i < 5; i++) farPeaks.push({ c: rr(-.05, 1.05), h: rr(.06, .15), w: rr(.07, .14) });
+  // 1. 遠山 (Far mountain range)
+  const isWinter = mood === 'snow_winter';
+  const isVastRiver = mood === 'vast_river';
+  const isMajestic = mood === 'majestic_peaks' || mood === 'heroic';
+  const isAutumn = mood === 'autumn_sunset';
+  const isSpring = mood === 'spring_breeze';
+
+  const farBase = isVastRiver ? rr(.42, .48) : isWinter ? rr(.38, .44) : rr(.36, .4);
+  const farPeaks = [];
+  const farCount = isVastRiver ? 7 : 5;
+  for (let i = 0; i < farCount; i++) {
+    farPeaks.push({ c: rr(-.05, 1.05), h: isVastRiver ? rr(.04, .09) : rr(.06, .15), w: rr(.07, .16) });
+  }
   const far = range(farPeaks, farBase, .006);
-  for (const run of runs(far, farBase, 0, 1, .008, .008)) S(run, { r: .0045, ink: .22, water: .8, speed: .9, note: .14, vel: .35 });
-  for (let j = 0; j < 5; j++) {
-    const off = .01 + j * .02, ij = .12 * (1 - j / 5.5);
-    for (const run of runs(x => far(x) - off, farBase, 0, 1, .02, .004)) S(run, { r: .022, ink: ij, water: .75, speed: 3, note: .3, after: .02, vel: .22 });
+  for (const run of runs(far, farBase, 0, 1, .008, .008)) {
+    S(run, { r: .0045, ink: isWinter ? .15 : .22, water: .8, dry: isWinter ? .3 : 0, speed: .9, note: .14, vel: .35 });
   }
-  // 主峰 main peak
-  const c0 = rr(.3, .4), mBase = rr(.29, .32);
-  const main = range([{ c: c0, h: rr(.38, .44), w: rr(.09, .12) }, { c: c0 + rr(.08, .12) * wx, h: rr(.2, .27), w: rr(.06, .08) }, { c: c0 - rr(.09, .13) * wx, h: rr(.15, .22), w: rr(.06, .09) }], mBase, .012);
-  mountain(main, mBase, { ink: 1, s: 1, cun: 26, moss: 14, folds: 5, x0: 0, x1: .78 });
-  // 次峰 second peak
+  for (let j = 0; j < (isVastRiver ? 3 : 5); j++) {
+    const off = .01 + j * .02, ij = (isWinter ? .08 : .12) * (1 - j / 5.5);
+    for (const run of runs(x => far(x) - off, farBase, 0, 1, .02, .004))
+      S(run, { r: .022, ink: ij, water: .75, speed: 3, note: .3, after: .02, vel: .22 });
+  }
+
+  // 2. 主峰 (Main peak)
+  const c0 = isVastRiver ? rr(.25, .32) : rr(.3, .4);
+  const mBase = isVastRiver ? rr(.33, .37) : rr(.29, .32);
+  const mainH = isMajestic ? rr(.44, .52) : isVastRiver ? rr(.22, .29) : rr(.38, .44);
+  const main = range([
+    { c: c0, h: mainH, w: isMajestic ? rr(.11, .14) : rr(.09, .12) },
+    { c: c0 + rr(.08, .12) * wx, h: mainH * .55, w: rr(.06, .08) },
+    { c: c0 - rr(.09, .13) * wx, h: mainH * .45, w: rr(.06, .09) }
+  ], mBase, .012);
+  
+  mountain(main, mBase, {
+    ink: isMajestic ? 1.25 : isWinter ? .85 : 1,
+    s: isMajestic ? 1.2 : 1,
+    cun: isMajestic ? 36 : isWinter ? 12 : 26,
+    moss: isWinter ? 3 : isSpring ? 20 : 14,
+    folds: isMajestic ? 7 : isWinter ? 3 : 5,
+    x0: 0, x1: isVastRiver ? .65 : .78,
+    dry: isWinter ? .35 : 0,
+    water: isSpring ? .35 : .25
+  });
+
+  // 3. 次峰 (Second peak)
   const c1 = rr(.68, .78), sBase = .27;
-  const second = range([{ c: c1, h: rr(.2, .26), w: rr(.07, .09) }, { c: c1 + rr(.07, .1) * wx, h: rr(.1, .14), w: .06 }], sBase, .01);
-  mountain(second, sBase, { ink: .7, s: .9, cun: 14, moss: 8, folds: 3, x0: .45, x1: 1 });
-  // 近岸 near bank
+  const secondH = isMajestic ? rr(.26, .34) : isVastRiver ? rr(.14, .18) : rr(.2, .26);
+  const second = range([{ c: c1, h: secondH, w: rr(.07, .09) }, { c: c1 + rr(.07, .1) * wx, h: secondH * .5, w: .06 }], sBase, .01);
+  mountain(second, sBase, {
+    ink: .7, s: .9,
+    cun: isWinter ? 6 : 14,
+    moss: isWinter ? 2 : 8,
+    folds: 3, x0: .45, x1: 1,
+    dry: isWinter ? .3 : 0
+  });
+
+  // 4. 近岸 (Near river bank)
   const bank = range([{ c: rr(.08, .16), h: rr(.07, .1), w: rr(.12, .18) }, { c: rr(.28, .34), h: rr(.03, .05), w: .06 }], .08, .006);
-  mountain(bank, .08, { ink: 1, s: 1.1, cun: 10, moss: 6, folds: 2, x0: 0, x1: .46 });
-  // 樹 trees
+  mountain(bank, .08, {
+    ink: 1, s: 1.1,
+    cun: isWinter ? 4 : 10,
+    moss: isWinter ? 2 : 6,
+    folds: 2, x0: 0, x1: .46,
+    dry: isWinter ? .3 : 0
+  });
+
+  // 5. 樹木 (Trees)
+  const treeCount = isWinter ? 2 : isMajestic ? 4 : 3;
   const tx0 = rr(.05, .08), gap = rr(.055, .075) * Math.min(wx, 1.3);
-  for (let i = 0; i < 3; i++) { const tx = tx0 + i * gap + rr(-.01, .01); tree(tx, bank(tx) - .004, rr(.15, .24), i === 1 ? .55 : 1); }
-  // 水 ripples
-  for (let i = 0; i < 6; i++) {
-    const y = rr(.09, .25), xa = rr(.38, .55), xb = Math.min(xa + rr(.15, .4), .98), ph = rr(0, 6), pts = [];
-    for (let x = xa; x <= xb; x += .01) pts.push([x, y + Math.sin(x * 60 + ph) * .002]);
-    S(pts, { r: .0019, ink: .5, water: .1, dry: .5, dryGrow: .3, fade: .6, speed: 1.4, note: .11, after: .05, vel: .35 });
+  for (let i = 0; i < treeCount; i++) {
+    const tx = tx0 + i * gap + rr(-.01, .01);
+    tree(tx, bank(tx) - .004, rr(.15, .24), i === 1 ? .55 : 1, isWinter, isAutumn ? .75 : 0);
   }
-  // 舟 boat and fisherman
-  const bx = rr(.55, .64), by = rr(.16, .2);
-  S([[bx - W(.04), by + .009], [bx - W(.022), by + .001], [bx, by - .001], [bx + W(.022), by + .001], [bx + W(.045), by + .011]], { r: .0034, ink: 1.2, water: .2, speed: .3, note: .05 });
-  D(bx + W(.004), by + .016, { r: .0045, ink: 1.3, water: .2, after: .15 });
-  S([[bx - W(.008), by + .023], [bx + W(.004), by + .029], [bx + W(.016), by + .023]], { r: .002, ink: 1.1, speed: .3 });
-  S([[bx + W(.014), by + .045], [bx + W(.05), by - .022]], { r: .0016, ink: .9, dry: .3, speed: .5 });
-  S([[bx - W(.055), by - .007], [bx + W(.06), by - .008]], { r: .0015, ink: .35, dry: .4, speed: 1 });
-  // 鳥 birds
-  const sunX = portrait ? rr(.55, .64) : rr(.66, .8), sunY = portrait ? rr(.78, .82) : rr(.76, .84);
+
+  // 6. 水紋 (Water ripples)
+  const rippleCount = isVastRiver ? 10 : isWinter ? 3 : 6;
+  for (let i = 0; i < rippleCount; i++) {
+    const y = isVastRiver ? rr(.06, .35) : rr(.09, .25);
+    const xa = isVastRiver ? rr(.25, .45) : rr(.38, .55);
+    const xb = Math.min(xa + rr(.15, .55), .98);
+    const ph = rr(0, 6), pts = [];
+    for (let x = xa; x <= xb; x += .01) pts.push([x, y + Math.sin(x * 60 + ph) * .002]);
+    S(pts, { r: .0019, ink: isWinter ? .25 : .5, water: .1, dry: isWinter ? .6 : .5, dryGrow: .3, fade: .6, speed: 1.4, note: .11, after: .05, vel: .35 });
+  }
+
+  // 7. 舟船與釣者 (Boat & Fisherman)
+  const hasBoat = true;
+  if (hasBoat) {
+    const bx = rr(.54, .66), by = isVastRiver ? rr(.18, .26) : rr(.16, .2);
+    S([[bx - W(.04), by + .009], [bx - W(.022), by + .001], [bx, by - .001], [bx + W(.022), by + .001], [bx + W(.045), by + .011]], { r: .0034, ink: 1.2, water: .2, speed: .3, note: .05 });
+    D(bx + W(.004), by + .016, { r: .0045, ink: 1.3, water: .2, after: .15 });
+    S([[bx - W(.008), by + .023], [bx + W(.004), by + .029], [bx + W(.016), by + .023]], { r: .002, ink: 1.1, speed: .3 });
+    S([[bx + W(.014), by + .045], [bx + W(.05), by - .022]], { r: .0016, ink: .9, dry: .3, speed: .5 });
+    S([[bx - W(.055), by - .007], [bx + W(.06), by - .008]], { r: .0015, ink: .35, dry: .4, speed: 1 });
+  }
+
+  // 8. 翔鳥 (Flying birds)
+  const birdCount = isWinter ? 1 : isAutumn ? 5 : 3;
   const bbx = portrait ? rr(.66, .7) : rr(.5, .6), bby = portrait ? rr(.64, .68) : rr(.8, .86);
-  for (let i = 0; i < 3; i++) {
-    const x = bbx + W(i * .03 + rr(-.006, .006)), y = bby + (i % 2) * .012 + rr(-.004, .004), s = rr(.8, 1.2);
+  for (let i = 0; i < birdCount; i++) {
+    const x = bbx + W(i * .028 + rr(-.005, .005)), y = bby + (i % 2) * .012 + rr(-.004, .004), s = rr(.8, 1.2);
     S([[x - W(.014 * s), y + .005 * s], [x - W(.007 * s), y + .004 * s], [x, y - .002 * s], [x + W(.006 * s), y + .004 * s], [x + W(.013 * s), y + .007 * s]], { r: .0017, ink: 1.2, water: .1, speed: .35, note: .03, after: .12, vel: .3, kind: 'harm' });
   }
-  // 日 a dot of cinnabar
-  D(sunX, sunY, { r: .042, ink: 0, cin: 1.25, water: .15, hard: 1, after: .9, chime: true });
-  // 題詩與鈐印
-  const pi = Math.floor(R() * POEMS.length);
-  F(() => showPoem(pi), 3.6);
+
+  // 9. 朝陽 / 落日 / 寒月 (Sun / Moon)
+  const sunX = portrait ? rr(.55, .64) : rr(.66, .8), sunY = portrait ? rr(.78, .82) : rr(.76, .84);
+  if (isWinter) {
+    // 寒江冷月 (Pale Cold Moon)
+    D(sunX, sunY, { r: .036, ink: .25, cin: 0, water: .5, hard: 0, after: .7, chime: true });
+  } else if (isAutumn) {
+    // 濃烈秋暮落日 (Rich Sunset Sun)
+    D(sunX, sunY, { r: .048, ink: 0, cin: 1.5, water: .12, hard: 1, after: .9, chime: true });
+  } else {
+    // 經典朱砂朝陽 (Classical Cinnabar Sun)
+    D(sunX, sunY, { r: .042, ink: 0, cin: 1.25, water: .15, hard: 1, after: .9, chime: true });
+  }
+
+  // 10. 題詩與鈐印 (Poem & Seal)
+  F(() => {
+    if (cfg && cfg.poem) {
+      showPoem(0, cfg.poem, cfg.seal, cfg.inscription);
+    } else {
+      const pi = Math.floor(R() * POEMS.length);
+      showPoem(pi);
+    }
+  }, 3.6);
   F(() => stampSeal(), .4);
+
   return Q;
 }
 
 /* ───────── poem & seal ───────── */
 let poemTimers = [];
 function hidePoem(){ poemTimers.forEach(clearTimeout); poemTimers = []; poemEl.classList.remove('on'); poemEl.hidden = true; poemEl.innerHTML = ''; }
-function showPoem(k){
+function showPoem(k, customLines = null, customSeal = null, inscription = null){
   hidePoem(); poemEl.hidden = false;
   let delay = 0;
-  POEMS[k].forEach((ln, li) => {
+  const lines = customLines || (typeof k === 'number' ? POEMS[k] : POEMS[0]);
+  lines.forEach((ln, li) => {
     const d = document.createElement('div'); d.className = 'ln';
-    for (const ch of ln) { const s = document.createElement('span'); s.className = 'ch'; s.textContent = ch; s.style.transitionDelay = delay + 'ms'; delay += 140; d.appendChild(s); }
+    for (const ch of ln) {
+      const s = document.createElement('span'); s.className = 'ch'; s.textContent = ch;
+      s.style.transitionDelay = delay + 'ms'; delay += 140;
+      d.appendChild(s);
+    }
     poemTimers.push(setTimeout(() => play([7, 5, 8, 4][li % 4], .5, -.5, 'pluck', true), delay - 600));
     delay += 240; poemEl.appendChild(d);
   });
+
+  // 落款署名 (Inscription)
+  if (inscription) {
+    const ins = document.createElement('div');
+    ins.className = 'ln ln-ins';
+    for (const ch of inscription) {
+      const s = document.createElement('span'); s.className = 'ch'; s.textContent = ch;
+      s.style.transitionDelay = delay + 'ms'; delay += 90;
+      ins.appendChild(s);
+    }
+    delay += 180;
+    poemEl.appendChild(ins);
+  }
+
+  // 鈐印 (Seal)
   const seal = document.createElement('div');
   seal.className = 'seal';
-  const sc = SEALS[currentSealIndex];
+  const sc = customSeal || SEALS[currentSealIndex];
   for (const ch of sc.chars) {
     const e = document.createElement('span');
     e.textContent = ch;
@@ -900,7 +1326,7 @@ function showPoem(k){
     play(0, .6, -.2, 'low', true);
   });
   poemEl.appendChild(seal);
-  poemEl.setAttribute('aria-label', POEMS[k].join('，') + '。');
+  poemEl.setAttribute('aria-label', lines.join('，') + '。');
   requestAnimationFrame(() => requestAnimationFrame(() => poemEl.classList.add('on')));
 }
 function stampSeal(){
@@ -910,10 +1336,16 @@ function stampSeal(){
 
 /* ───────── controls ───────── */
 let seedCounter = (Math.random() * 1e9) | 0;
+let currentCustomConfig = null;
 function setPaintBtn(on){ paintBtn.textContent = on ? '停筆' : '落筆山水'; }
 function stopPainting(){ ghost.on = false; ghost.q = []; ghost.cur = null; ghostEl.classList.remove('on'); setPaintBtn(false); }
-function startPainting(){
-  const go = () => { ghost.q = buildLandscape(seedCounter++); ghost.cur = null; ghost.wait = .2; ghost.on = true; ghostEl.classList.add('on'); setPaintBtn(true); };
+function startPainting(customCfg = null){
+  if (customCfg) currentCustomConfig = customCfg;
+  const go = () => {
+    ghost.q = buildLandscape(seedCounter++, currentCustomConfig);
+    ghost.cur = null; ghost.wait = .2; ghost.on = true;
+    ghostEl.classList.add('on'); setPaintBtn(true);
+  };
   if (hasInk) wash(go); else { hidePoem(); go(); }
 }
 function wash(then){
@@ -931,7 +1363,11 @@ function washTick(dt){
   if (washT > 1.9) { clearDye(); washing = false; hasInk = false; const t = washThen; washThen = null; if (t) t(); }
 }
 
-paintBtn.addEventListener('click', () => { ensureAudio(); if (ghost.on) stopPainting(); else if (!washing) startPainting(); });
+paintBtn.addEventListener('click', () => {
+  ensureAudio();
+  if (ghost.on) stopPainting();
+  else if (!washing) { currentCustomConfig = null; startPainting(); }
+});
 $('wash').addEventListener('click', () => { ensureAudio(); if (!washing) wash(); });
 soundBtn.addEventListener('click', () => { if (!audio.ctx) ensureAudio(); else setSound(!audio.on); });
 
@@ -946,7 +1382,7 @@ document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click
   document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-selected', x === b ? 'true' : 'false'));
   document.querySelectorAll('.pane').forEach(p => p.hidden = p.dataset.pane !== b.dataset.tab);
 }));
-addEventListener('keydown', e => { if (e.key === 'Escape' && !sheet.hidden) { sheet.hidden = true; aboutBtn.setAttribute('aria-expanded', 'false'); } });
+addEventListener('keydown', e => { if (e.key === 'Escape') { if (!sheet.hidden) { sheet.hidden = true; aboutBtn.setAttribute('aria-expanded', 'false'); } closeArtModal(); } });
 
 /* ───────── theme toggle ───────── */
 const themeBtn = $('themeToggle');
@@ -982,10 +1418,12 @@ $('save').addEventListener('click', () => {
       const scale = canvas.width / cr.width;
       const lines = poemEl.querySelectorAll('.ln');
       const inkColor = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#17181B';
+      const inkSoftColor = getComputedStyle(document.documentElement).getPropertyValue('--ink-soft').trim() || '#57544C';
       const cinnabarColor = getComputedStyle(document.documentElement).getPropertyValue('--cinnabar').trim() || '#B03A2A';
       const sealTextColor = getComputedStyle(document.documentElement).getPropertyValue('--seal-text').trim() || '#F4F0E6';
       
       lines.forEach(ln => {
+        const isIns = ln.classList.contains('ln-ins');
         const chs = ln.querySelectorAll('.ch');
         chs.forEach(ch => {
           const r = ch.getBoundingClientRect();
@@ -994,7 +1432,7 @@ $('save').addEventListener('click', () => {
           const fs = parseFloat(getComputedStyle(ch).fontSize) * scale;
           ctx.save();
           ctx.font = `${fs}px "Ma Shan Zheng", "Kaiti TC", "BiauKai", serif`;
-          ctx.fillStyle = inkColor;
+          ctx.fillStyle = isIns ? inkSoftColor : inkColor;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'alphabetic';
           ctx.globalAlpha = 0.92;
@@ -1111,6 +1549,485 @@ function frame(now){
 requestAnimationFrame(frame);
 setTimeout(startPainting, 700);
 setTimeout(() => { hinted = true; hintEl.classList.add('gone'); }, 8000);
+
+/* ─────────────────────────────────────────────────────────────
+   神思賦畫 · 意境創作大腦 (Literary & Multimodal Semantic Brain)
+   ───────────────────────────────────────────────────────────── */
+const artModal = $('artModal');
+const creationBtn = $('creationBtn');
+const modalCloseBtn = $('modalCloseBtn');
+const modalCancelBtn = $('modalCancelBtn');
+const modalSubmitBtn = $('modalSubmitBtn');
+const insightToast = $('insightToast');
+const toastTitle = $('toastTitle');
+const toastBody = $('toastBody');
+const toastBadge = $('toastBadge');
+const toastCloseBtn = $('toastCloseBtn');
+
+let currentActiveTab = 'text';
+let uploadedImageData = null;
+let uploadedImageAnalysis = null;
+let uploadedPdfText = '';
+
+// Load saved API Key if any
+const savedApiKey = localStorage.getItem('moyun_gemini_api_key') || '';
+if ($('inputApiKey') && savedApiKey) $('inputApiKey').value = savedApiKey;
+if ($('inputApiKey')) {
+  $('inputApiKey').addEventListener('change', e => {
+    localStorage.setItem('moyun_gemini_api_key', e.target.value.trim());
+  });
+}
+
+function openArtModal(){
+  artModal.classList.add('open');
+  if (currentActiveTab === 'text') $('inputText').focus();
+}
+function closeArtModal(){
+  artModal.classList.remove('open');
+}
+creationBtn.addEventListener('click', () => { ensureAudio(); openArtModal(); });
+modalCloseBtn.addEventListener('click', closeArtModal);
+modalCancelBtn.addEventListener('click', closeArtModal);
+artModal.addEventListener('click', e => { if (e.target === artModal) closeArtModal(); });
+
+// Toast notification
+let toastTimer = null;
+function showToast(badge, title, body, duration = 6500){
+  if (toastTimer) clearTimeout(toastTimer);
+  toastBadge.textContent = badge;
+  toastTitle.textContent = title;
+  toastBody.innerHTML = body;
+  insightToast.classList.add('show');
+  toastTimer = setTimeout(() => { insightToast.classList.remove('show'); }, duration);
+}
+toastCloseBtn.addEventListener('click', () => { insightToast.classList.remove('show'); });
+
+// Tabs
+document.querySelectorAll('.modal-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.modal-tab-btn').forEach(b => {
+      b.classList.toggle('active', b === btn);
+      b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+    });
+    currentActiveTab = btn.dataset.tab;
+    $('panelText').classList.toggle('active', currentActiveTab === 'text');
+    $('panelImage').classList.toggle('active', currentActiveTab === 'image');
+    $('panelPdf').classList.toggle('active', currentActiveTab === 'pdf');
+  });
+});
+
+// Preset Chips
+document.querySelectorAll('.preset-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    $('inputText').value = chip.dataset.text;
+    $('inputText').focus();
+  });
+});
+
+// Image Upload & Analysis
+const imageDropzone = $('imageDropzone');
+const imageFileInput = $('imageFileInput');
+const imagePreviewCard = $('imagePreviewCard');
+const imageThumb = $('imageThumb');
+const imageFileName = $('imageFileName');
+const imageVibeText = $('imageVibeText');
+const imageRemoveBtn = $('imageRemoveBtn');
+
+imageDropzone.addEventListener('click', () => imageFileInput.click());
+imageDropzone.addEventListener('dragover', e => { e.preventDefault(); imageDropzone.classList.add('dragover'); });
+imageDropzone.addEventListener('dragleave', () => imageDropzone.classList.remove('dragover'));
+imageDropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  imageDropzone.classList.remove('dragover');
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) handleImageFile(e.dataTransfer.files[0]);
+});
+imageFileInput.addEventListener('change', e => {
+  if (e.target.files && e.target.files[0]) handleImageFile(e.target.files[0]);
+});
+imageRemoveBtn.addEventListener('click', () => {
+  uploadedImageData = null;
+  uploadedImageAnalysis = null;
+  imagePreviewCard.classList.remove('show');
+  imageDropzone.style.display = 'flex';
+  imageFileInput.value = '';
+});
+
+function handleImageFile(file){
+  if (!file.type.startsWith('image/')) {
+    alert('請上傳圖片格式檔案（JPG、PNG、WEBP 等）。');
+    return;
+  }
+  imageFileName.textContent = file.name;
+  imageVibeText.textContent = '分析圖片色彩與構圖意境中...';
+  imageDropzone.style.display = 'none';
+  imagePreviewCard.classList.add('show');
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    uploadedImageData = ev.target.result;
+    imageThumb.src = uploadedImageData;
+    const img = new Image();
+    img.onload = () => {
+      uploadedImageAnalysis = analyzeImageAtmosphere(img);
+      imageVibeText.textContent = `意境感知：${uploadedImageAnalysis.desc}`;
+    };
+    img.src = uploadedImageData;
+  };
+  reader.readAsDataURL(file);
+}
+
+function analyzeImageAtmosphere(img){
+  const oc = document.createElement('canvas');
+  oc.width = 80; oc.height = 80;
+  const octx = oc.getContext('2d');
+  octx.drawImage(img, 0, 0, 80, 80);
+  const d = octx.getImageData(0, 0, 80, 80).data;
+  let rSum = 0, gSum = 0, bSum = 0, lumSum = 0;
+  let topLum = 0, botLum = 0;
+  const count = 80 * 80;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i+1], b = d[i+2];
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+    rSum += r; gSum += g; bSum += b; lumSum += lum;
+    const y = Math.floor((i / 4) / 80);
+    if (y < 40) topLum += lum; else botLum += lum;
+  }
+  const avgR = rSum / count, avgG = gSum / count, avgB = bSum / count;
+  const avgLum = lumSum / count;
+  topLum /= (count / 2); botLum /= (count / 2);
+
+  let mood = 'ethereal', desc = '空靈素雅，山川簡遠';
+  if (avgLum < 70) {
+    mood = 'snow_winter'; desc = '寒江蕭索，雪意清深';
+  } else if (avgR > avgB * 1.25 && avgR > 105) {
+    mood = 'autumn_sunset'; desc = '落霞生輝，秋山染醉';
+  } else if (avgG > avgR * 1.15 && avgG > avgB) {
+    mood = 'spring_breeze'; desc = '春山新綠，水暖風和';
+  } else if (topLum > botLum * 1.35) {
+    mood = 'majestic_peaks'; desc = '萬壑爭流，千峰聳立';
+  } else if (avgB > avgR * 1.12) {
+    mood = 'vast_river'; desc = '煙波浩渺，水天一色';
+  } else {
+    mood = 'ethereal'; desc = '高遠澄澈，行雲流水';
+  }
+  return { mood, desc, avgLum, avgR, avgG, avgB };
+}
+
+// PDF & TXT Upload
+const pdfDropzone = $('pdfDropzone');
+const pdfFileInput = $('pdfFileInput');
+const pdfPreviewCard = $('pdfPreviewCard');
+const pdfFileName = $('pdfFileName');
+const pdfExcerptText = $('pdfExcerptText');
+const pdfRemoveBtn = $('pdfRemoveBtn');
+
+pdfDropzone.addEventListener('click', () => pdfFileInput.click());
+pdfDropzone.addEventListener('dragover', e => { e.preventDefault(); pdfDropzone.classList.add('dragover'); });
+pdfDropzone.addEventListener('dragleave', () => pdfDropzone.classList.remove('dragover'));
+pdfDropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  pdfDropzone.classList.remove('dragover');
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) handleDocumentFile(e.dataTransfer.files[0]);
+});
+pdfFileInput.addEventListener('change', e => {
+  if (e.target.files && e.target.files[0]) handleDocumentFile(e.target.files[0]);
+});
+pdfRemoveBtn.addEventListener('click', () => {
+  uploadedPdfText = '';
+  pdfPreviewCard.classList.remove('show');
+  pdfDropzone.style.display = 'flex';
+  pdfFileInput.value = '';
+});
+
+async function handleDocumentFile(file){
+  pdfFileName.textContent = file.name;
+  pdfExcerptText.textContent = '解析文件內文中...';
+  pdfDropzone.style.display = 'none';
+  pdfPreviewCard.classList.add('show');
+
+  try {
+    if (file.name.endsWith('.pdf')) {
+      if (!window.pdfjsLib) throw new Error('PDF 解析程式庫尚未就緒');
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      let text = '';
+      const maxPages = Math.min(pdf.numPages, 6);
+      for (let i = 1; i <= maxPages; i++) {
+        const page = await pdf.getPage(i);
+        const tc = await page.getTextContent();
+        text += tc.items.map(it => it.str).join(' ') + '\n';
+      }
+      uploadedPdfText = text.trim();
+      pdfExcerptText.textContent = `共 ${pdf.numPages} 頁，已提取 ${uploadedPdfText.length} 字。摘要：「${uploadedPdfText.slice(0, 75).replace(/\s+/g, ' ')}...」`;
+    } else {
+      uploadedPdfText = await file.text();
+      pdfExcerptText.textContent = `已提取 ${uploadedPdfText.length} 字。摘要：「${uploadedPdfText.slice(0, 75).replace(/\s+/g, ' ')}...」`;
+    }
+  } catch (err) {
+    console.error(err);
+    pdfExcerptText.textContent = '文件解析失敗，請確認檔案格式或複製內文至文字框。';
+  }
+}
+
+/* ───────── Classical Literature Semantic Engine ───────── */
+const LITERARY_RESERVOIR = {
+  snow_winter: {
+    name: '寒江雪意',
+    badge: '❄️ 寒江獨釣',
+    seal: { chars: ['寂', '寒', '照', '江'], label: '印章：寒江孤寂' },
+    poems: [
+      ['千山鳥飛絕', '萬徑人蹤滅', '孤舟蓑笠翁', '獨釣寒江雪'],
+      ['長風卷素雪', '萬里凍雲凝', '寒江孤影在', '天地一舟清'],
+      ['天寒水始凍', '江白客初歸', '欲識孤舟意', '平蕪雪片飛']
+    ],
+    keywords: ['雪', '寒', '冰', '霜', '冬', '孤', '獨', '蓑', '笠', '釣', '冷', '凍', '白', '寂', '滅', '淒', '殘'],
+    insight: '意象取自萬徑人蹤之寂與寒江積雪之穆。筆下以大面積留白代積雪，孤舟一葉獨對寒天，琴音取冷泉漱玉之幽寂。'
+  },
+  autumn_sunset: {
+    name: '落霞秋色',
+    badge: '🌅 落霞秋水',
+    seal: { chars: ['霞', '落', '水', '秋'], label: '印章：落霞秋水' },
+    poems: [
+      ['落霞生遠岫', '返景滿前汀', '萬壑皆含暮', '歸禽宿杳冥'],
+      ['一道殘陽水', '半江瑟瑟紅', '落霞天水際', '暮靄入遙空'],
+      ['千林楓葉赤', '一抹晚霞紅', '歸鳥迎夕照', '孤舟向遠空']
+    ],
+    keywords: ['夕', '霞', '暮', '晚', '照', '秋', '楓', '紅', '殘陽', '桑榆', '醉', '歸鴉', '橙', '黃', '長天'],
+    insight: '詩情化用落霞孤鶩、秋水長天之開闊。設色以朱砂點染夕照與秋林，墨分焦濃相伴，長煙一抹入遠空。'
+  },
+  vast_river: {
+    name: '煙波浩渺',
+    badge: '🛶 煙波江渚',
+    seal: { chars: ['波', '煙', '客', '江'], label: '印章：煙波江客' },
+    poems: [
+      ['千山遮不住', '大江自東流', '白雲隨水去', '孤棹帶煙浮'],
+      ['西塞白鷺起', '煙波萬頃寬', '江流天地外', '山色有無間'],
+      ['長江連楚越', '千里浩渺流', '遠水涵虛碧', '輕舟逐片舟']
+    ],
+    keywords: ['江', '水', '河', '舟', '船', '漁', '渡', '潮', '浪', '海', '汀', '渚', '煙波', '帆', '棹', '滄浪', '流水'],
+    insight: '體現大江東去、浩渺無極之江天意象。畫中推遠群峰，以連綿微波鋪陳水勢，孤帆扁舟泛乎波瀾之間。'
+  },
+  majestic_peaks: {
+    name: '崇山千峰',
+    badge: '🏔️ 崇山萬壑',
+    seal: { chars: ['山', '泰', '意', '氣'], label: '印章：氣泰山立' },
+    poems: [
+      ['千仞穿雲表', '萬峰入畫圖', '何當凌絕頂', '一覽眾山殊'],
+      ['岱宗天下秀', '拔地立乾坤', '陰陽割昏曉', '蕩胸萬疊雲'],
+      ['重巒疊嶂起', '萬壑起松濤', '倚天拔地立', '浩氣出林豪']
+    ],
+    keywords: ['峰', '嶺', '崖', '峭', '岩', '巍', '峻', '崇', '萬壑', '險', '登', '絕頂', '拔', '崔嵬', '盤礡', '群山', '巍峨'],
+    insight: '寫太行、黃山之崔嵬氣勢。以重墨厚皴立主峰骨架，古松盤崖而生，彰顯「會當凌絕頂」之卓然大觀。'
+  },
+  spring_breeze: {
+    name: '春山新綠',
+    badge: '🌸 春水初生',
+    seal: { chars: ['春', '生', '物', '萬'], label: '印章：萬物春生' },
+    poems: [
+      ['竹外桃花動', '春江水暖流', '蔞蒿迎嫩綠', '煙雨不知愁'],
+      ['春風吹綠野', '細雨潤千山', '草長鶯飛處', '幽禽自在啼'],
+      ['日出江花盛', '春水綠如苔', '輕舟逐煙浪', '客自柳邊來']
+    ],
+    keywords: ['春', '花', '綠', '草', '鶯', '燕', '風', '暖', '生', '翠', '枝', '韶', '萌', '潤', '柳', '桃', '新'],
+    insight: '蘊含天地欣欣向榮之春意。以繁密苔點與蔥蘢秀枝相發，春江水軟波輕，音律明快舒朗。'
+  },
+  heroic: {
+    name: '豪邁磅礴',
+    badge: '🌊 大江豪情',
+    seal: { chars: ['雄', '氣', '如', '虹'], label: '印章：氣如長虹' },
+    poems: [
+      ['大江翻巨浪', '千古喚風流', '長嘯青天外', '孤雲自去留'],
+      ['萬里橫戈躍', '一聲嘯動雷', '星垂平野闊', '狂墨捲潮來'],
+      ['濁酒一壺盡', '乾坤萬里寬', '乘風破重浪', '嘯傲白雲端']
+    ],
+    keywords: ['豪', '壯', '狂', '劍', '乾坤', '滄海', '奔騰', '萬里', '嘯', '烈', '英雄', '風雲', '破浪', '浩然', '狂瀾'],
+    insight: '氣吞雲夢、萬里風流之雄渾境界。行筆迅疾如烈風過境，濃墨重挫，激越琴律似鐵騎突出刀槍鳴。'
+  },
+  ethereal: {
+    name: '空靈清遠',
+    badge: '🍃 行雲流水',
+    seal: { chars: ['心', '墨', '賞', '韻'], label: '印章：墨韻心賞' },
+    poems: [
+      ['行到水窮處', '坐看雲起時', '偶然值林叟', '談笑無還期'],
+      ['一筆落空山', '雲從墨裡還', '無人知此意', '流水自潺潺'],
+      ['空山不見人', '但聞人語響', '返景入深林', '復照青苔上']
+    ],
+    keywords: ['空', '靜', '幽', '禪', '雲', '溪', '隱', '琴', '月', '影', '僧', '泉', '竹', '閒', '忘', '塵', '澹', '清'],
+    insight: '取摩詰居士詩中有畫之澹遠境地。遠山淡入天際，疏松落子，溪泉幽咽，自得超然清絕之氣。'
+  }
+};
+
+// Extract poem lines if user input already contains classical lines
+function tryExtractUserPoem(text){
+  const clean = text.replace(/[\r\n]+/g, '，').replace(/[。！？；]/g, '，');
+  const parts = clean.split('，').map(s => s.trim().replace(/[^\u4e00-\u9fa5]/g, '')).filter(s => s.length >= 4 && s.length <= 7);
+  if (parts.length >= 4) {
+    return parts.slice(0, 4);
+  }
+  return null;
+}
+
+// Semantic Analysis Engine
+function inferLiteraryConcept(rawText, imageVibe, forcedStyle = 'auto'){
+  if (forcedStyle !== 'auto' && LITERARY_RESERVOIR[forcedStyle]) {
+    const res = LITERARY_RESERVOIR[forcedStyle];
+    const userPoem = tryExtractUserPoem(rawText);
+    return {
+      mood: forcedStyle,
+      poem: userPoem || res.poems[Math.floor(Math.random() * res.poems.length)],
+      seal: res.seal,
+      insight: res.insight,
+      badge: res.badge,
+      name: res.name
+    };
+  }
+
+  // Score moods based on keyword matching
+  const scores = {};
+  for (const m in LITERARY_RESERVOIR) scores[m] = 0;
+
+  const combinedText = (rawText || '') + ' ' + (imageVibe ? imageVibe.desc : '');
+  for (const m in LITERARY_RESERVOIR) {
+    for (const kw of LITERARY_RESERVOIR[m].keywords) {
+      if (combinedText.includes(kw)) scores[m] += 2;
+    }
+  }
+
+  // Visual boost
+  if (imageVibe && imageVibe.mood && scores[imageVibe.mood] !== undefined) {
+    scores[imageVibe.mood] += 5;
+  }
+
+  // Find best mood
+  let bestMood = 'ethereal', maxScore = -1;
+  for (const m in scores) {
+    if (scores[m] > maxScore) { maxScore = scores[m]; bestMood = m; }
+  }
+  if (maxScore <= 0) bestMood = 'ethereal';
+
+  const res = LITERARY_RESERVOIR[bestMood];
+  const userPoem = tryExtractUserPoem(rawText);
+
+  return {
+    mood: bestMood,
+    poem: userPoem || res.poems[Math.floor(Math.random() * res.poems.length)],
+    seal: res.seal,
+    insight: res.insight,
+    badge: res.badge,
+    name: res.name
+  };
+}
+
+// Optional Gemini API Call
+async function callGeminiForPoem(apiKey, prompt, imageBase64 = null){
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const parts = [];
+  parts.push({
+    text: `你是一位學貫古今的文人畫大師與詩詞名家。請閱讀以下使用者提供的文字、文章或圖片意象，思考其深刻的文學意境與哲思，創作一首嚴謹精煉的五言絕句（四句，每句五字），並決定最匹配的水墨畫境風格。
+使用者內容：
+${prompt || '（無附加文字，請依據意象造境）'}
+
+請嚴格只回傳 JSON 格式（勿加任何 markdown 標記），結構如下：
+{
+  "mood": "ethereal" | "snow_winter" | "autumn_sunset" | "vast_river" | "majestic_peaks" | "spring_breeze" | "heroic",
+  "poem": ["第一句", "第二句", "第三句", "第四句"],
+  "insight": "一段約50字的文人意境析鑑與畫理闡發",
+  "sealChars": ["四個", "繁體", "字", "印文"]
+}`
+  });
+
+  if (imageBase64) {
+    const b64Data = imageBase64.split(',')[1] || imageBase64;
+    parts.push({
+      inline_data: { mime_type: "image/jpeg", data: b64Data }
+    });
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts }] })
+  });
+
+  if (!response.ok) throw new Error(`API 回應異常: ${response.status}`);
+  const json = await response.json();
+  const rawContent = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const cleanJson = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
+  return JSON.parse(cleanJson);
+}
+
+// Main Submit Trigger
+modalSubmitBtn.addEventListener('click', async () => {
+  ensureAudio();
+  modalSubmitBtn.disabled = true;
+  modalSubmitBtn.textContent = '凝神思索中...';
+
+  // Gather inputs
+  const textInput = $('inputText').value.trim();
+  const selectedStyle = $('selectStyle').value;
+  const inscription = $('inputInscription').value.trim() || '墨韻神思題';
+  const apiKey = $('inputApiKey').value.trim();
+
+  let effectiveText = '';
+  if (currentActiveTab === 'text') {
+    effectiveText = textInput;
+  } else if (currentActiveTab === 'image') {
+    effectiveText = textInput || (uploadedImageAnalysis ? uploadedImageAnalysis.desc : '');
+  } else if (currentActiveTab === 'pdf') {
+    effectiveText = textInput ? (textInput + '\n' + uploadedPdfText) : uploadedPdfText;
+  }
+
+  let finalConcept = null;
+
+  // Try Gemini if API key provided
+  if (apiKey) {
+    try {
+      modalSubmitBtn.textContent = '神思靈犀運化中...';
+      const geminiRes = await callGeminiForPoem(apiKey, effectiveText, currentActiveTab === 'image' ? uploadedImageData : null);
+      if (geminiRes && Array.isArray(geminiRes.poem) && geminiRes.poem.length === 4) {
+        const moodKey = LITERARY_RESERVOIR[geminiRes.mood] ? geminiRes.mood : 'ethereal';
+        const resDef = LITERARY_RESERVOIR[moodKey];
+        const sealChars = (Array.isArray(geminiRes.sealChars) && geminiRes.sealChars.length === 4) ? geminiRes.sealChars : resDef.seal.chars;
+        finalConcept = {
+          mood: moodKey,
+          poem: geminiRes.poem,
+          seal: { chars: sealChars, label: `印章：${sealChars.join('')}` },
+          insight: geminiRes.insight || resDef.insight,
+          badge: resDef.badge,
+          name: resDef.name
+        };
+      }
+    } catch (err) {
+      console.warn('Gemini 創作發生異常，切換為本機神思引擎：', err);
+    }
+  }
+
+  // Fallback to built-in classical semantic engine
+  if (!finalConcept) {
+    finalConcept = inferLiteraryConcept(effectiveText, uploadedImageAnalysis, selectedStyle);
+  }
+
+  // Reset button and close modal
+  modalSubmitBtn.disabled = false;
+  modalSubmitBtn.textContent = '🖌️ 意境推演並揮毫創作';
+  closeArtModal();
+
+  // Show insight toast
+  showToast(
+    finalConcept.badge,
+    `《${finalConcept.name}》詩畫合璧`,
+    `<b>詩情畫理：</b>${finalConcept.insight}<br><b>題詠詩文：</b>${finalConcept.poem.join('，')}。`
+  );
+
+  // Start dedicated painting
+  startPainting({
+    mood: finalConcept.mood,
+    poem: finalConcept.poem,
+    seal: finalConcept.seal,
+    inscription: inscription
+  });
+});
+
 })();
 </script>
 </body>
