@@ -17,13 +17,436 @@
 <meta name="twitter:image" content="media/og.jpg">
 <meta name="theme-color" content="#ECE8DD">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' rx='3' fill='%23B03A2A'/%3E%3C/svg%3E">
-<style>:root{color-scheme:light}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{color-scheme:light}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}
+/* ─── 古詩文庫與名篇題畫樣式 ─── */
+.bar .poetry-highlight {
+  color: var(--ink);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-image: linear-gradient(var(--ink), var(--ink));
+}
+
+.poetry-modal-card {
+  width: min(980px, calc(100% - 24px));
+  max-height: min(90vh, 840px);
+}
+
+.poetry-modal-body {
+  padding: 16px 22px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 朝代導航膠囊列 */
+.dynasty-scroll-bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: thin;
+}
+.dynasty-scroll-bar::-webkit-scrollbar {
+  height: 4px;
+}
+.dynasty-scroll-bar::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 2px;
+}
+.dynasty-chip {
+  appearance: none;
+  background: none;
+  border: 1px solid var(--line);
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  cursor: pointer;
+  border-radius: 20px;
+  white-space: nowrap;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.dynasty-chip:hover {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+  background: var(--line);
+}
+.dynasty-chip.active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+  font-weight: 600;
+}
+
+/* 篩選控制器網格 */
+.poetry-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1.2fr 1.6fr;
+  gap: 12px;
+  align-items: end;
+  background: rgba(0, 0, 0, 0.02);
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+@media (max-width: 820px) {
+  .poetry-filter-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 520px) {
+  .poetry-filter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.poetry-filter-item label {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-input-wrapper input {
+  padding-right: 28px;
+}
+.search-clear-btn {
+  position: absolute;
+  right: 6px;
+  background: none;
+  border: 0;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+}
+.search-clear-btn:hover {
+  color: var(--ink);
+}
+
+/* 統計資訊列 */
+.poetry-stat-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  padding: 2px 4px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.poetry-count-text b {
+  color: var(--cinnabar);
+  font-weight: 600;
+}
+.poetry-action-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.btn-sm {
+  appearance: none;
+  background: none;
+  border: 1px solid var(--line);
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink-soft);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-sm:hover {
+  color: var(--ink);
+  border-color: var(--ink-soft);
+  background: var(--line);
+}
+.btn-ghost {
+  border-color: var(--line);
+}
+
+/* 詩文卡片網格 */
+.poetry-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(285px, 1fr));
+  gap: 14px;
+}
+
+.poetry-card {
+  background: rgba(0, 0, 0, 0.015);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  transition: all 0.22s ease;
+  position: relative;
+}
+.poetry-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--cinnabar);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  background: var(--paper);
+}
+
+.poetry-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.poetry-title-group {
+  flex: 1;
+  min-width: 0;
+}
+.poetry-card-title {
+  margin: 0 0 4px;
+  font-family: var(--font-brush);
+  font-size: 21px;
+  font-weight: normal;
+  color: var(--ink);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.poetry-card-author {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.poetry-badge-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.badge-dynasty {
+  font-size: 11px;
+  background: var(--line);
+  color: var(--ink);
+  padding: 1px 6px;
+  border-radius: 2px;
+}
+.badge-genre {
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+  padding: 0 5px;
+  border-radius: 2px;
+}
+.badge-theme {
+  font-size: 11px;
+  background: rgba(176, 58, 42, 0.1);
+  color: var(--cinnabar);
+  padding: 1px 6px;
+  border-radius: 2px;
+  font-weight: 500;
+}
+
+.poetry-card-quote {
+  background: rgba(0, 0, 0, 0.025);
+  border-left: 3px solid var(--cinnabar);
+  padding: 8px 10px;
+  border-radius: 0 3px 3px 0;
+  font-family: var(--font-brush);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+  letter-spacing: 0.05em;
+  min-height: 48px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.poetry-card-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+.btn-read-poetry {
+  flex: 1;
+  appearance: none;
+  background: none;
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.18s;
+  text-align: center;
+}
+.btn-read-poetry:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+  background: var(--line);
+}
+.btn-paint-poetry {
+  flex: 1.3;
+  appearance: none;
+  background: var(--cinnabar);
+  border: 0;
+  color: #fff;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 3px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: all 0.18s;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(176, 58, 42, 0.25);
+}
+.btn-paint-poetry:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.poetry-empty-state {
+  grid-column: 1 / -1;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--ink-faint);
+  font-size: 14px;
+  line-height: 1.8;
+}
+.poetry-empty-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+  opacity: 0.7;
+}
+
+.poetry-pagination {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.poetry-source-hint {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-right: auto;
+}
+.poetry-source-hint a {
+  color: var(--ink-soft);
+  text-decoration: underline;
+}
+.poetry-source-hint a:hover {
+  color: var(--cinnabar);
+}
+
+/* 原典閱覽彈窗 */
+.reader-modal-card {
+  width: min(760px, calc(100% - 24px));
+  max-height: min(90vh, 800px);
+}
+.reader-modal-body {
+  padding: 20px 26px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.reader-title {
+  margin: 0;
+  font-family: var(--font-brush);
+  font-size: 26px;
+  color: var(--ink);
+  letter-spacing: 0.08em;
+}
+.reader-meta {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-top: 4px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.reader-section-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cinnabar);
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.reader-intro-box {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: var(--ink-soft);
+}
+.reader-quote-box {
+  background: rgba(176, 58, 42, 0.04);
+  border-left: 3px solid var(--cinnabar);
+  padding: 12px 16px;
+  border-radius: 0 4px 4px 0;
+  font-family: var(--font-brush);
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--ink);
+  letter-spacing: 0.08em;
+}
+.reader-lines-box {
+  padding: 10px 4px;
+}
+.reader-full-lines {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 2.1;
+  color: var(--ink);
+  letter-spacing: 0.06em;
+  background: rgba(0, 0, 0, 0.015);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 18px 24px;
+  white-space: pre-line;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.reader-source-link {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--ink-faint);
+  text-decoration: underline;
+}
+.reader-source-link:hover {
+  color: var(--cinnabar);
+}
+
+</style>
 <title>墨韻 Moyun · 一張會呼吸的紙 · 意境創作</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+TC:wght@400;600;900&family=Noto+Sans+TC:wght@400;500&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
 <!-- PDF.js for parsing PDF document atmosphere -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- 中國古詩文精讀資料庫 (543 篇名篇) -->
+<script src="classical_data.js"></script>
 <script>if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <style>
 :root{
@@ -319,6 +742,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
 
 <nav class="bar" aria-label="工具列">
   <button id="creationBtn" class="creation-highlight" title="輸入文字、上傳圖片或PDF，AI自動依意境創作書法畫">✨ 意境創作</button>
+  <button id="poetryBtn" class="poetry-highlight" title="古典詩文名篇典藏，540+ 名篇分類檢索，依詩意境一鍵創作國畫">📖 古詩文庫</button>
   <span class="sep"></span>
   <button id="paint" class="primary">落筆山水</button>
   <span class="sep"></span>
@@ -350,6 +774,141 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
 </div>
 
 <!-- 意境創作對話視窗 -->
+<!-- 中國古詩文庫 · 經典題畫視窗 -->
+<div class="modal-overlay" id="poetryModal" role="dialog" aria-modal="true" aria-labelledby="poetryModalTitle">
+  <div class="modal-card poetry-modal-card">
+    <div class="modal-header">
+      <h2 id="poetryModalTitle">中國古詩文庫 · 經典題畫 <span class="badge">540+ 名篇全收錄</span></h2>
+      <button class="modal-close" id="poetryModalCloseBtn" aria-label="關閉視窗">✕</button>
+    </div>
+    <div class="modal-body poetry-modal-body">
+      <!-- 篩選列 1：朝代膠囊導航列 -->
+      <div class="dynasty-scroll-bar" id="dynastyFilterBar">
+        <button class="dynasty-chip active" data-period="all">全部朝代 (543)</button>
+        <button class="dynasty-chip" data-period="先秦">先秦 (71)</button>
+        <button class="dynasty-chip" data-period="漢">兩漢 (40)</button>
+        <button class="dynasty-chip" data-period="魏晉">魏晉 (26)</button>
+        <button class="dynasty-chip" data-period="南北朝">南北朝 (22)</button>
+        <button class="dynasty-chip" data-period="唐">大唐 (151)</button>
+        <button class="dynasty-chip" data-period="五代十國">五代 (9)</button>
+        <button class="dynasty-chip" data-period="宋">兩宋 (136)</button>
+        <button class="dynasty-chip" data-period="元">元代 (19)</button>
+        <button class="dynasty-chip" data-period="明">明代 (27)</button>
+        <button class="dynasty-chip" data-period="清">清代 (42)</button>
+      </div>
+
+      <!-- 篩選列 2：多維度挑選控制器 -->
+      <div class="poetry-filter-grid">
+        <div class="poetry-filter-item">
+          <label for="poetryGenreSelect">體裁分類</label>
+          <select id="poetryGenreSelect" class="option-select">
+            <option value="all">全部體裁 (8種)</option>
+            <option value="詩">詩歌 (230)</option>
+            <option value="詞">詞賦詞牌 (87)</option>
+            <option value="文">古文散文 (178)</option>
+            <option value="曲">元曲散曲 (17)</option>
+            <option value="詩經">詩經名篇 (10)</option>
+            <option value="楚辭">楚辭九歌 (5)</option>
+            <option value="辭賦">漢魏辭賦 (7)</option>
+            <option value="小說">傳奇小說 (9)</option>
+          </select>
+        </div>
+
+        <div class="poetry-filter-item">
+          <label for="poetryThemeSelect">文學意境主題</label>
+          <select id="poetryThemeSelect" class="option-select">
+            <option value="all">全部意境主題 (8大主題)</option>
+            <option value="山水登臨">山水登臨 · 奇峰雲海</option>
+            <option value="江河湖海">江河湖海 · 浩渺江天</option>
+            <option value="田園幽居">田園幽居 · 空山幽客</option>
+            <option value="邊塞豪放">邊塞豪放 · 大漠長河</option>
+            <option value="歲時雪月">歲時雪月 · 寒江落月</option>
+            <option value="春水花鳥">春水花鳥 · 春風新綠</option>
+            <option value="送別行旅">送別行旅 · 孤帆遠影</option>
+            <option value="詠史哲思">詠史哲思 · 臨江懷古</option>
+          </select>
+        </div>
+
+        <div class="poetry-filter-item">
+          <label for="poetryAuthorSelect">名家作者</label>
+          <select id="poetryAuthorSelect" class="option-select">
+            <option value="all">歷代名家 (240位)</option>
+          </select>
+        </div>
+
+        <div class="poetry-filter-item poetry-search-item">
+          <label for="poetrySearchInput">關鍵字檢索</label>
+          <div class="search-input-wrapper">
+            <input type="text" id="poetrySearchInput" class="option-input" placeholder="搜尋篇名、作者、名句或詩意內容...">
+            <button id="poetrySearchClearBtn" class="search-clear-btn" title="清除搜尋" style="display:none">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 統計資訊列與隨機神遊 -->
+      <div class="poetry-stat-bar">
+        <span id="poetryCountText" class="poetry-count-text">共收錄 <b>543</b> 篇古典文學精粹</span>
+        <div class="poetry-action-group">
+          <button id="randomPoemBtn" class="btn-sm btn-ghost" title="隨機神遊歷代名篇">🎲 隨機神遊</button>
+          <button id="resetFilterBtn" class="btn-sm btn-ghost" title="重設所有篩選條件">重設篩選</button>
+        </div>
+      </div>
+
+      <!-- 詩詞卡片網格 -->
+      <div class="poetry-cards-grid" id="poetryGrid">
+        <!-- JS 動態渲染卡片 -->
+      </div>
+
+      <!-- 載入更多 -->
+      <div class="poetry-pagination" id="poetryPagination">
+        <button id="loadMorePoetryBtn" class="btn-secondary" style="display:none">載入更多名篇...</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="poetry-source-hint">古詩文典藏出處：<a href="https://www.classicalchineseliterature.org/" target="_blank" rel="noopener">中國古詩文精讀</a></div>
+      <button class="btn-secondary" id="poetryModalCloseFooterBtn">關閉典庫</button>
+    </div>
+  </div>
+</div>
+
+<!-- 詩文原典與導賞閱覽視窗 -->
+<div class="modal-overlay" id="poetryReaderModal" role="dialog" aria-modal="true" aria-labelledby="readerTitle">
+  <div class="modal-card reader-modal-card">
+    <div class="modal-header">
+      <div>
+        <h2 id="readerTitle" class="reader-title">詩篇名</h2>
+        <div id="readerMeta" class="reader-meta">朝代 · 作者 · 體裁 · 主題</div>
+      </div>
+      <button class="modal-close" id="readerCloseBtn" aria-label="關閉視窗">✕</button>
+    </div>
+    <div class="modal-body reader-modal-body">
+      <!-- 導賞背景簡介 -->
+      <div class="reader-intro-box" id="readerIntroBox">
+        <div class="reader-section-title">【文學背景與導賞析鑑】</div>
+        <p id="readerIntroText" class="reader-intro-text"></p>
+      </div>
+
+      <!-- 題畫核心精句 -->
+      <div class="reader-quote-box" id="readerQuoteBox">
+        <div class="reader-section-title">【核心題畫名句】</div>
+        <div id="readerQuoteText" class="reader-quote-text"></div>
+      </div>
+
+      <!-- 原典全文詩句 -->
+      <div class="reader-lines-box">
+        <div class="reader-section-title">【原典全文】</div>
+        <div id="readerFullLines" class="reader-full-lines"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <a id="readerExternalLink" href="#" target="_blank" rel="noopener" class="reader-source-link">🔗 前往古詩文精讀原網頁</a>
+      <button class="btn-secondary" id="readerCancelBtn">返回典庫</button>
+      <button class="btn-primary" id="readerCreatePaintBtn">🎨 依此詩意境創作國畫</button>
+    </div>
+  </div>
+</div>
+
+
 <div class="modal-overlay" id="artModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="modal-card">
     <div class="modal-header">
@@ -2027,6 +2586,464 @@ modalSubmitBtn.addEventListener('click', async () => {
     inscription: inscription
   });
 });
+
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   中國古代詩文精讀典庫與意境賦畫大腦 (Classical Chinese Literature Brain)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+(function initClassicalLibrary() {
+  const data = window.CLASSICAL_LITERATURE_DATA || [];
+  if (!data || data.length === 0) {
+    console.warn('Classical literature data not loaded yet.');
+    return;
+  }
+
+  // 名家專屬朱砂雅印考究字典
+  const CLASSICAL_SEAL_MAP = {
+    '李白': { chars: ['太', '白', '仙', '客'], label: '印章：太白仙客' },
+    '杜甫': { chars: ['少', '陵', '野', '老'], label: '印章：少陵野老' },
+    '蘇軾': { chars: ['東', '坡', '居', '士'], label: '印章：東坡居士' },
+    '王維': { chars: ['摩', '詰', '禪', '思'], label: '印章：摩詰禪思' },
+    '陶淵明': { chars: ['五', '柳', '先', '生'], label: '印章：五柳先生' },
+    '白居易': { chars: ['香', '山', '居', '士'], label: '印章：香山居士' },
+    '辛棄疾': { chars: ['稼', '軒', '長', '歌'], label: '印章：稼軒長歌' },
+    '李清照': { chars: ['易', '安', '居', '士'], label: '印章：易安居士' },
+    '陸游': { chars: ['放', '翁', '墨', '戲'], label: '印章：放翁墨戲' },
+    '歐陽修': { chars: ['六', '一', '居', '士'], label: '印章：六一居士' },
+    '柳宗元': { chars: ['河', '東', '先', '生'], label: '印章：河東先生' },
+    '孟浩然': { chars: ['鹿', '門', '幽', '棲'], label: '印章：鹿門幽棲' },
+    '曹操': { chars: ['魏', '武', '揮', '鞭'], label: '印章：魏武揮鞭' },
+    '曹植': { chars: ['陳', '思', '仙', '才'], label: '印章：陳思仙才' },
+    '劉禹錫': { chars: ['陋', '室', '銘', '心'], label: '印章：陋室銘心' },
+    '杜牧': { chars: ['樊', '川', '逸', '氣'], label: '印章：樊川逸氣' },
+    '李商隱': { chars: ['玉', '谿', '生', '印'], label: '印章：玉谿生印' },
+    '范仲淹': { chars: ['文', '正', '公', '印'], label: '印章：文正公印' },
+    '屈原': { chars: ['楚', '辭', '離', '騷'], label: '印章：楚辭離騷' },
+    '莊子': { chars: ['南', '華', '秋', '水'], label: '印章：南華秋水' },
+    '《莊子》': { chars: ['南', '華', '真', '經'], label: '印章：南華真經' },
+    '《詩經》': { chars: ['思', '無', '邪', '齋'], label: '印章：思無邪齋' },
+    '《山海經》': { chars: ['大', '荒', '奇', '譚'], label: '印章：大荒奇譚' },
+    '《論語》': { chars: ['仁', '者', '樂', '山'], label: '印章：仁者樂山' },
+    '龔自珍': { chars: ['定', '庵', '遺', '墨'], label: '印章：定庵遺墨' },
+    '顧炎武': { chars: ['亭', '林', '先', '生'], label: '印章：亭林先生' },
+    '王安石': { chars: ['半', '山', '老', '人'], label: '印章：半山老人' },
+    '司馬光': { chars: ['涑', '水', '清', '風'], label: '印章：涑水清風' },
+    '李煜': { chars: ['南', '唐', '詞', '主'], label: '印章：南唐詞主' }
+  };
+
+  // 生成作者印章
+  function getAuthorSeal(author) {
+    if (CLASSICAL_SEAL_MAP[author]) return CLASSICAL_SEAL_MAP[author];
+    const clean = author.replace(/[《》\s]/g, '');
+    let chars = [];
+    if (clean.length === 2) {
+      chars = [clean[0], clean[1], '之', '印'];
+    } else if (clean.length === 3) {
+      chars = [clean[0], clean[1], clean[2], '印'];
+    } else if (clean.length >= 4) {
+      chars = [clean[0], clean[1], clean[2], clean[3]];
+    } else {
+      chars = ['墨', '韻', '清', '賞'];
+    }
+    return { chars, label: `印章：${chars.join('')}` };
+  }
+
+  // 詩句提煉器：提煉 2~4 行最具畫意的書法文字
+  function extractPaintingPoem(item) {
+    const candidates = [];
+    const sources = [item.quote || [], item.lines || []];
+    for (const src of sources) {
+      for (const line of src) {
+        const parts = line.split(/[，。！？；、\r\n\s]+/).filter(Boolean);
+        for (let p of parts) {
+          p = p.replace(/[^\u4e00-\u9fa5]/g, '').trim();
+          if (p.length >= 4 && p.length <= 8) {
+            candidates.push(p);
+          }
+        }
+      }
+    }
+    // 優先選取四句
+    if (candidates.length >= 4) {
+      return candidates.slice(0, 4);
+    }
+    // 兩句對聯
+    if (candidates.length >= 2) {
+      return candidates.slice(0, 2);
+    }
+    // 後備
+    return [item.title, item.author + '名篇', '墨韻天成', '筆意悠遠'];
+  }
+
+  // 意境解析說明
+  function getMoodDescription(mood, theme) {
+    const map = {
+      'ethereal': '澹遠空靈，墨色清淡，遠山如煙，水波澹澹，如摩詰空山禪意。',
+      'vast_river': '萬里江天，浩渺連波，飛鳥渡水，遠帆孤舟，煙波萬頃。',
+      'snow_winter': '寒江落雪，孤舟獨釣，冷月清寒，水天一色，筆墨冷雋荒率。',
+      'autumn_sunset': '霜天紅葉，夕陽殘照，朱砂融墨，意境蒼茫深邃。',
+      'spring_breeze': '春風新綠，生機萌發，草木滋榮，筆墨酣暢潤澤。',
+      'majestic_peaks': '千巖萬壑，主峰聳拔，披麻皴法蒼勁雄渾，氣象萬千。',
+      'heroic': '大漠孤煙，長河落日，金戈鐵馬，筆力剛勁拔萃，豪邁奔放。'
+    };
+    return map[mood] || '意在筆先，神與物遊，濃淡乾濕，氣韻生動。';
+  }
+
+  // DOM 元素選取
+  const poetryBtn = $('poetryBtn');
+  const poetryModal = $('poetryModal');
+  const poetryModalCloseBtn = $('poetryModalCloseBtn');
+  const poetryModalCloseFooterBtn = $('poetryModalCloseFooterBtn');
+
+  const poetryReaderModal = $('poetryReaderModal');
+  const readerCloseBtn = $('readerCloseBtn');
+  const readerCancelBtn = $('readerCancelBtn');
+  const readerCreatePaintBtn = $('readerCreatePaintBtn');
+
+  const dynastyFilterBar = $('dynastyFilterBar');
+  const genreSelect = $('poetryGenreSelect');
+  const themeSelect = $('poetryThemeSelect');
+  const authorSelect = $('poetryAuthorSelect');
+  const searchInput = $('poetrySearchInput');
+  const searchClearBtn = $('poetrySearchClearBtn');
+  const randomPoemBtn = $('randomPoemBtn');
+  const resetFilterBtn = $('resetFilterBtn');
+
+  const poetryGrid = $('poetryGrid');
+  const poetryCountText = $('poetryCountText');
+  const loadMoreBtn = $('loadMorePoetryBtn');
+
+  // 狀態管理
+  let currentPeriod = 'all';
+  let currentGenre = 'all';
+  let currentTheme = 'all';
+  let currentAuthor = 'all';
+  let currentKeyword = '';
+  let filteredItems = [];
+  let displayedCount = 0;
+  const PAGE_SIZE = 24;
+  let currentReadingItem = null;
+
+  // 1. 初始化名家下拉選單
+  function populateAuthorSelect() {
+    const authorCounts = {};
+    for (const item of data) {
+      if (item.author) {
+        authorCounts[item.author] = (authorCounts[item.author] || 0) + 1;
+      }
+    }
+    const sortedAuthors = Object.keys(authorCounts).sort((a, b) => authorCounts[b] - authorCounts[a]);
+    authorSelect.innerHTML = `<option value="all">歷代名家 (${sortedAuthors.length}位)</option>`;
+    for (const auth of sortedAuthors) {
+      const opt = document.createElement('option');
+      opt.value = auth;
+      opt.textContent = `${auth} (${authorCounts[auth]}篇)`;
+      authorSelect.appendChild(opt);
+    }
+  }
+  populateAuthorSelect();
+
+  // 2. 篩選演算法
+  function applyFilters() {
+    const kw = currentKeyword.toLowerCase().trim();
+    filteredItems = data.filter(item => {
+      // 朝代
+      if (currentPeriod !== 'all' && item.period !== currentPeriod) return false;
+      // 體裁
+      if (currentGenre !== 'all' && item.form !== currentGenre) return false;
+      // 主題
+      if (currentTheme !== 'all' && item.theme !== currentTheme) return false;
+      // 作者
+      if (currentAuthor !== 'all' && item.author !== currentAuthor) return false;
+      // 關鍵字檢索（篇名、作者、名句、全文）
+      if (kw) {
+        const titleMatch = item.title && item.title.toLowerCase().includes(kw);
+        const authorMatch = item.author && item.author.toLowerCase().includes(kw);
+        const quoteMatch = item.quote && item.quote.some(q => q.toLowerCase().includes(kw));
+        const linesMatch = item.lines && item.lines.some(l => l.toLowerCase().includes(kw));
+        const introMatch = item.intro && item.intro.toLowerCase().includes(kw);
+        if (!titleMatch && !authorMatch && !quoteMatch && !linesMatch && !introMatch) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    displayedCount = 0;
+    poetryGrid.innerHTML = '';
+    updateCountText();
+    renderNextPage();
+  }
+
+  function updateCountText() {
+    poetryCountText.innerHTML = `檢索到 <b>${filteredItems.length}</b> 篇古典名作（共 543 篇）`;
+  }
+
+  // 3. 渲染卡片
+  function renderNextPage() {
+    if (filteredItems.length === 0) {
+      poetryGrid.innerHTML = `
+        <div class="poetry-empty-state">
+          <div class="poetry-empty-icon">📜</div>
+          <div style="font-weight:600;font-size:16px;margin-bottom:4px;color:var(--ink)">未尋得符合條件之詩文</div>
+          <div>不妨調整關鍵字或重設篩選條件，或點擊上方「🎲 隨機神遊」漫步古典之林。</div>
+        </div>
+      `;
+      loadMoreBtn.style.display = 'none';
+      return;
+    }
+
+    const nextBatch = filteredItems.slice(displayedCount, displayedCount + PAGE_SIZE);
+    for (const item of nextBatch) {
+      const card = createPoetryCard(item);
+      poetryGrid.appendChild(card);
+    }
+    displayedCount += nextBatch.length;
+
+    if (displayedCount < filteredItems.length) {
+      loadMoreBtn.style.display = 'inline-block';
+      loadMoreBtn.textContent = `載入更多名篇（剩餘 ${filteredItems.length - displayedCount} 篇）...`;
+    } else {
+      loadMoreBtn.style.display = 'none';
+    }
+  }
+
+  function createPoetryCard(item) {
+    const card = document.createElement('div');
+    card.className = 'poetry-card';
+
+    // 核心名句展示
+    let displayQuote = '';
+    if (item.quote && item.quote.length > 0) {
+      displayQuote = item.quote.slice(0, 2).join('，');
+    } else if (item.lines && item.lines.length > 0) {
+      displayQuote = item.lines[0];
+    }
+    if (displayQuote.length > 50) displayQuote = displayQuote.slice(0, 48) + '...';
+
+    card.innerHTML = `
+      <div class="poetry-card-header">
+        <div class="poetry-title-group">
+          <h3 class="poetry-card-title" title="${item.title}">${item.title}</h3>
+          <div class="poetry-card-author">【${item.period}】${item.author}</div>
+        </div>
+        <div class="poetry-badge-row">
+          <span class="badge-genre">${item.form}</span>
+          <span class="badge-theme">${item.theme}</span>
+        </div>
+      </div>
+      <div class="poetry-card-quote" title="題畫核心名句">
+        ${displayQuote || '意在筆先，墨隨意運'}
+      </div>
+      <div class="poetry-card-actions">
+        <button class="btn-read-poetry" title="閱讀全文詩句與歷史背景導賞">📖 閱覽全文</button>
+        <button class="btn-paint-poetry" title="依據此詩文學意境與名句，揮毫創作一幅國畫">🎨 依此詩揮毫</button>
+      </div>
+    `;
+
+    // 點擊卡片閱覽
+    card.querySelector('.btn-read-poetry').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openReaderModal(item);
+    });
+
+    // 點擊一鍵創作
+    card.querySelector('.btn-paint-poetry').addEventListener('click', (e) => {
+      e.stopPropagation();
+      createPaintingFromPoem(item);
+    });
+
+    return card;
+  }
+
+  // 4. 開啟原典閱讀彈窗
+  function openReaderModal(item) {
+    currentReadingItem = item;
+    $('readerTitle').textContent = item.title;
+    $('readerMeta').textContent = `【${item.period}】${item.author} · 體裁：${item.form} · 主題：${item.theme}`;
+    $('readerIntroText').textContent = item.intro || '暫無導賞記錄。此作品為中國古典文學名篇，詞意深邃，意境高遠。';
+
+    // 題畫名句
+    const quoteBox = $('readerQuoteBox');
+    const quoteText = $('readerQuoteText');
+    if (item.quote && item.quote.length > 0) {
+      quoteBox.style.display = 'block';
+      quoteText.textContent = item.quote.join('\n');
+    } else {
+      quoteBox.style.display = 'none';
+    }
+
+    // 全文
+    const fullLines = $('readerFullLines');
+    if (item.lines && item.lines.length > 0) {
+      fullLines.textContent = item.lines.join('\n\n');
+    } else {
+      fullLines.textContent = item.title;
+    }
+
+    // 外部連結
+    const extLink = $('readerExternalLink');
+    if (item.url) {
+      extLink.href = item.url;
+      extLink.style.display = 'inline-block';
+    } else {
+      extLink.style.display = 'none';
+    }
+
+    poetryReaderModal.classList.add('open');
+  }
+
+  function closeReaderModal() {
+    poetryReaderModal.classList.remove('open');
+    currentReadingItem = null;
+  }
+
+  // 5. 核心：依此詩意境創作國畫
+  function createPaintingFromPoem(item) {
+    ensureAudio();
+
+    // 關閉閱讀彈窗與典庫彈窗
+    closeReaderModal();
+    closePoetryModal();
+
+    // 提煉書法詩句
+    const poemLines = extractPaintingPoem(item);
+
+    // 專屬印章
+    const seal = getAuthorSeal(item.author);
+
+    // 落款題名
+    const inscription = `${item.period}·${item.author}《${item.title}》 墨韻題`;
+
+    // 意境解析與提示浮動卡片
+    const moodDesc = getMoodDescription(item.mood, item.theme);
+    showToast(
+      `【${item.theme}】`,
+      `《${item.title}》· ${item.author}`,
+      `<b>水墨畫境：</b>${moodDesc}<br><b>題畫詩文：</b>${poemLines.join('，')}。<br><b>文學賞析：</b>${(item.intro || '').slice(0, 110)}...`
+    );
+
+    // 啟動專屬水墨繪畫流程
+    startPainting({
+      mood: item.mood,
+      poem: poemLines,
+      seal: seal,
+      inscription: inscription
+    });
+  }
+
+  // 6. 隨機神遊功能
+  function pickRandomPoem() {
+    const list = filteredItems.length > 0 ? filteredItems : data;
+    const randomIndex = Math.floor(Math.random() * list.length);
+    const chosen = list[randomIndex];
+    openReaderModal(chosen);
+  }
+
+  // 7. 開關古詩文庫彈窗
+  function openPoetryModal() {
+    poetryModal.classList.add('open');
+    if (filteredItems.length === 0) {
+      applyFilters();
+    }
+  }
+
+  function closePoetryModal() {
+    poetryModal.classList.remove('open');
+  }
+
+  // 8. 綁定事件監聽
+  poetryBtn.addEventListener('click', openPoetryModal);
+  poetryModalCloseBtn.addEventListener('click', closePoetryModal);
+  poetryModalCloseFooterBtn.addEventListener('click', closePoetryModal);
+
+  readerCloseBtn.addEventListener('click', closeReaderModal);
+  readerCancelBtn.addEventListener('click', closeReaderModal);
+  readerCreatePaintBtn.addEventListener('click', () => {
+    if (currentReadingItem) {
+      createPaintingFromPoem(currentReadingItem);
+    }
+  });
+
+  // 朝代點擊事件
+  dynastyFilterBar.querySelectorAll('.dynasty-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      dynastyFilterBar.querySelectorAll('.dynasty-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentPeriod = chip.dataset.period;
+      applyFilters();
+    });
+  });
+
+  // 下拉選單變更
+  genreSelect.addEventListener('change', () => {
+    currentGenre = genreSelect.value;
+    applyFilters();
+  });
+  themeSelect.addEventListener('change', () => {
+    currentTheme = themeSelect.value;
+    applyFilters();
+  });
+  authorSelect.addEventListener('change', () => {
+    currentAuthor = authorSelect.value;
+    applyFilters();
+  });
+
+  // 搜尋框輸入
+  let searchTimer = null;
+  searchInput.addEventListener('input', () => {
+    currentKeyword = searchInput.value;
+    searchClearBtn.style.display = currentKeyword ? 'inline-block' : 'none';
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      applyFilters();
+    }, 250);
+  });
+  searchClearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    currentKeyword = '';
+    searchClearBtn.style.display = 'none';
+    applyFilters();
+  });
+
+  // 隨機神遊與重設
+  randomPoemBtn.addEventListener('click', pickRandomPoem);
+  resetFilterBtn.addEventListener('click', () => {
+    currentPeriod = 'all';
+    currentGenre = 'all';
+    currentTheme = 'all';
+    currentAuthor = 'all';
+    currentKeyword = '';
+    searchInput.value = '';
+    searchClearBtn.style.display = 'none';
+    genreSelect.value = 'all';
+    themeSelect.value = 'all';
+    authorSelect.value = 'all';
+    dynastyFilterBar.querySelectorAll('.dynasty-chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.period === 'all');
+    });
+    applyFilters();
+  });
+
+  // 載入更多
+  loadMoreBtn.addEventListener('click', renderNextPage);
+
+  // 支援 ESC 鍵關閉
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (poetryReaderModal.classList.contains('open')) {
+        closeReaderModal();
+      } else if (poetryModal.classList.contains('open')) {
+        closePoetryModal();
+      }
+    }
+  });
+
+  // 初始篩選執行
+  applyFilters();
+})();
+
 
 })();
 </script>
