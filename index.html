@@ -490,11 +490,58 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
 .mast h1{margin:0;font-family:var(--font-brush);font-weight:400;font-size:clamp(34px,5vmin,52px);line-height:1;letter-spacing:.08em;color:var(--ink)}
 .mast p{margin:0;padding-top:.5em;font-size:13px;letter-spacing:.42em;color:var(--ink-soft)}
 
-.poem{position:fixed;top:calc(env(safe-area-inset-top,0px) + 30px);left:26px;writing-mode:vertical-rl;font-family:var(--font-brush);font-size:clamp(21px,3.3vmin,34px);line-height:1.62;letter-spacing:.2em;color:var(--ink);pointer-events:none;user-select:none;z-index:4}
-.poem .ln{display:block}
-.poem .ln.ln-ins{font-size:0.65em;color:var(--ink-soft);letter-spacing:0.12em;margin-right:0.35em}
-.poem .ch{display:inline-block;opacity:0;filter:blur(6px);transform:translateY(-.08em);transition:opacity 1s ease,filter 1.3s ease,transform 1.3s ease}
-.poem.on .ch{opacity:.92;filter:blur(0);transform:none}
+.poem {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 26px);
+  left: 28px;
+  writing-mode: vertical-rl;
+  font-family: var(--font-brush);
+  color: var(--ink);
+  pointer-events: none;
+  user-select: none;
+  z-index: 4;
+  max-height: calc(100vh - 130px);
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 0.3em;
+}
+.poem.poem-short {
+  font-size: clamp(20px, 3.2vmin, 32px);
+  line-height: 1.65;
+  letter-spacing: 0.18em;
+}
+.poem.poem-medium {
+  font-size: clamp(14px, 2.1vmin, 20px);
+  line-height: 1.45;
+  letter-spacing: 0.12em;
+}
+.poem.poem-long {
+  font-size: clamp(12px, 1.6vmin, 16px);
+  line-height: 1.35;
+  letter-spacing: 0.08em;
+}
+.poem .ln { display: block; }
+.poem .ln.ln-ins {
+  font-size: 0.75em;
+  color: var(--ink-soft);
+  letter-spacing: 0.08em;
+  margin-right: 0.35em;
+  opacity: 0.88;
+}
+.poem .ch {
+  display: inline-block;
+  opacity: 0;
+  filter: blur(5px);
+  transform: translateY(-.08em);
+  transition: opacity 0.8s ease, filter 1s ease, transform 1s ease;
+}
+.poem.on .ch {
+  opacity: .94;
+  filter: blur(0);
+  transform: none;
+}
 .seal{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;place-items:center;margin-top:auto;margin-right:.55em;width:2.5em;height:2.5em;box-sizing:border-box;padding:.18em;background:var(--cinnabar);color:var(--seal-text);font-size:.5em;line-height:1;letter-spacing:0;writing-mode:horizontal-tb;text-align:center;border-radius:2px 3px 2px 4px;mix-blend-mode:var(--seal-blend);opacity:0;transform:scale(1.6) rotate(-8deg);transition:opacity .18s ease-in,transform .22s cubic-bezier(.3,1.6,.5,1);pointer-events:auto;cursor:pointer}
 .seal.on{opacity:.9;transform:rotate(-2deg)}
 
@@ -1625,12 +1672,682 @@ const SEALS = [
 ];
 let currentSealIndex = 0;
 
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   神思賦畫 · 文學意象深度分析引擎與十大文人畫專屬繪畫管線
+   ═══════════════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   神思賦畫 · 文學意象深度分析引擎與原典長跋提取器
+   Literary Imagery Analyzer & Original Calligraphy Text Formatter
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+(function(root) {
+  // 十大文人畫核心意象原型配置
+  const IMAGERY_ARCHETYPES = {
+    plum_blossom: {
+      name: 'plum_blossom',
+      title: '傲雪寒梅 · 疏影橫斜',
+      mood: 'snow_winter',
+      composition: '折枝取勢，留白虛靈',
+      inkStyle: '焦墨枯筆寫鐵骨，朱砂點染開生面',
+      keywords: ['梅', '疏影', '暗香', '落梅', '折梅', '寒梅', '病梅', '香雪', '冰姿', '傲雪', '梅花', '早梅', '雪梅'],
+      hasBoat: false,
+      hasBirds: false,
+      hasSunMoon: 'none',
+      critique: '取孤山處士「疏影橫斜水清淺，暗香浮動月黃昏」之格調。屏除凡山常水，特寫虯曲老梅，骨力清峻，朱砂綴英，傲然自立於天地之間。'
+    },
+    bamboo: {
+      name: 'bamboo',
+      title: '空山勁竹 · 幽篁拂風',
+      mood: 'spring_breeze',
+      composition: '拔節凌霄，石畔清風',
+      inkStyle: '濃淡分梢，破筆撇葉，竿如鐵線',
+      keywords: ['竹', '修篁', '翠竹', '竹林', '竹葉', '筼簹', '勁竹', '虛心', '穿林打葉', '竹影', '孤竹', '竹石', '竹里'],
+      hasBoat: false,
+      hasBirds: false,
+      hasSunMoon: 'none',
+      critique: '師板橋道人與東坡竹法，未出土時先有節，臨崖破石挺然而立。以勁利之筆撇出個字介字，墨分五色，清氣襲人。'
+    },
+    pavilion: {
+      name: 'pavilion',
+      title: '仙山樓閣 · 臨江高台',
+      mood: 'ethereal',
+      composition: '重檐凌空，背山面江',
+      inkStyle: '界畫巧構，飛檐展翅，青松相映',
+      keywords: ['樓', '閣', '亭', '台', '黃鶴', '鸛雀', '岳陽', '滕王', '寒山寺', '寺', '城', '堂', '廬', '屋', '殿', '宮', '榭', '宇', '醉翁亭', '登樓', '白帝城'],
+      hasBoat: true,
+      hasBirds: true,
+      hasSunMoon: 'sun',
+      critique: '營造「落霞與孤齊飛，秋水共長天一色」之重檐樓閣。危崖之上飛檐挑角，雲霞繚繞，江天萬里，盡收眼底。'
+    },
+    waterfall: {
+      name: 'waterfall',
+      title: '懸泉飛瀑 · 萬仞奔流',
+      mood: 'majestic_peaks',
+      composition: '崇山夾峙，白練垂天',
+      inkStyle: '大斧劈皴刻懸崖，飛白破墨寫流泉',
+      keywords: ['瀑布', '飛流', '懸泉', '流泉', '瀑', '深潭', '千尺', '石泉', '噴雪', '飛泉', '銀河', '水簾', '飛瀑'],
+      hasBoat: false,
+      hasBirds: true,
+      hasSunMoon: 'sun',
+      critique: '取太白「飛流直下三千尺，疑是銀河落九天」之雄奇氣魄。危峰對峙間一道素練奔騰懸瀉，激石成霧，聲震千巖。'
+    },
+    desert: {
+      name: 'desert',
+      title: '大漠孤煙 · 長河落日',
+      mood: 'heroic',
+      composition: '平川浩蕩，沙磧無垠',
+      inkStyle: '乾皴渴墨寫荒丘，一筆孤煙貫青天',
+      keywords: ['大漠', '孤煙', '塞外', '邊塞', '邊城', '塞下', '戈壁', '黃沙', '瀚海', '陰山', '胡天', '胡馬', '胡笳', '長河落日', '玉門關', '磧'],
+      hasBoat: false,
+      hasBirds: false,
+      hasSunMoon: 'sunset',
+      critique: '全景描繪王摩詰「大漠孤煙直，長河落日圓」塞外壯觀。沙浪逶迤，長河蜿蜒，孤煙如劍拔起，如血落日雄沉悲壯，絕無江湖瑣碎之舟。'
+    },
+    rocky_cliff: {
+      name: 'rocky_cliff',
+      title: '赤壁穿空 · 驚濤拍岸',
+      mood: 'vast_river',
+      composition: '絕壁拔江，江濤洶湧',
+      inkStyle: '折帶斧劈刻巨石，卷白留痕翻萬堆雪',
+      keywords: ['赤壁', '驚濤', '穿空', '拍岸', '斷崖', '峭壁', '千堆雪', '巨石', '石壁', '怪石', '亂石', '懸崖', '壁立', '大江東去', '卷起千堆雪'],
+      hasBoat: true,
+      hasBirds: false,
+      hasSunMoon: 'moon',
+      critique: '依東坡《赤壁懷古》意象構圖。左立嶙峋巨崖如鐵壁橫空，江流奔湧激盪，浪花翻滾如雪，一葉孤舟寄身浩渺江流，慨嘆人生之超然。'
+    },
+    misty_willow: {
+      name: 'misty_willow',
+      title: '煙雨江南 · 柳岸春曉',
+      mood: 'spring_breeze',
+      composition: '平波如鏡，依依垂楊',
+      inkStyle: '細染水墨生煙雨，柔毫絲條蘸新綠',
+      keywords: ['柳', '楊柳', '垂柳', '煙雨', '春風', '江南', '杏花', '微雨', '細雨', '芳草', '桃', '綠楊', '春江', '花落', '落紅', '潤物細無聲', '折柳'],
+      hasBoat: true,
+      hasBirds: true,
+      hasSunMoon: 'none',
+      critique: '深契江南煙雨溫婉詩意。水湄之畔柔柳萬條如絲絛拂水，空濛細雨水墨暈散，雙燕剪春風，淡雅幽遠。'
+    },
+    snow_solitude: {
+      name: 'snow_solitude',
+      title: '寒江雪霽 · 萬徑空寂',
+      mood: 'snow_winter',
+      composition: '空曠寒山，獨舟釣雪',
+      inkStyle: '計白當黑留雪色，枯筆寒林無飛鳥',
+      keywords: ['雪', '寒江', '獨釣', '千山鳥飛絕', '冰', '寒山', '雪山', '素裹', '皚', '嚴冬', '歲寒', '萬徑人蹤滅', '孤舟蓑笠翁', '風雪', '夜雪', '雪滿'],
+      hasBoat: true,
+      hasBirds: false,
+      hasSunMoon: 'moon',
+      critique: '嚴格契合柳宗元《江雪》「千山鳥飛絕，萬徑人蹤滅」之孤寂冷寒境地。全畫無任何飛鳥，寒林盡枯，唯千山積雪與寒江一葉孤舟獨釣，天地一白。'
+    },
+    high_mountain: {
+      name: 'high_mountain',
+      title: '萬仞崇山 · 雲海蒸騰',
+      mood: 'majestic_peaks',
+      composition: '高遠深遠，主峰凌霄',
+      inkStyle: '密點雨點皴，繁皴積墨，雲吞霧吐',
+      keywords: ['峰', '嶺', '嶽', '泰山', '華山', '廬山', '峨眉', '天姥', '崔嵬', '萬仞', '千山', '雲海', '登高', '危峰', '群山', '蜀道', '重巒'],
+      hasBoat: false,
+      hasBirds: true,
+      hasSunMoon: 'sun',
+      critique: '宗北宋范寬《谿山行旅》法門，主峰突兀聳立，雲氣出沒，絕壁懸松，展現「會當凌絕頂，一覽眾山小」之浩然大氣。'
+    },
+    vast_river: {
+      name: 'vast_river',
+      title: '萬里長江 · 煙波浩渺',
+      mood: 'vast_river',
+      composition: '平遠遼闊，水天一色',
+      inkStyle: '淡墨拖染寫長波，遠帆孤逝逐天際',
+      keywords: ['長江', '江水', '江流', '黃河', '滄浪', '滄海', '江天', '洞庭', '潯陽', '孤帆', '遠帆', '泛舟', '舟', '客船', '江渚', '波濤', '江陵', '滔滔', '萬重山'],
+      hasBoat: true,
+      hasBirds: true,
+      hasSunMoon: 'sunset',
+      critique: '寫長江黃河無盡水波，天水相接，遠岫微茫。一葉扁舟或白帆逐波遠去，孤鴻滅沒，寫盡行旅離愁與開闊胸懷。'
+    }
+  };
+
+  // 1. 文學意象分析核心函數
+  function analyzeLiteraryConcept(itemOrText, optionalTitle = '', optionalAuthor = '', optionalPeriod = '') {
+    let title = '', author = '', period = '', form = '', fullText = '', intro = '';
+
+    if (typeof itemOrText === 'object' && itemOrText !== null) {
+      title = itemOrText.title || '';
+      author = itemOrText.author || '';
+      period = itemOrText.period || '';
+      form = itemOrText.form || '';
+      intro = itemOrText.intro || '';
+      const lines = itemOrText.lines || [];
+      fullText = title + ' ' + author + ' ' + lines.join(' ') + ' ' + intro;
+    } else {
+      fullText = String(itemOrText || '');
+      title = optionalTitle || '感賦';
+      author = optionalAuthor || '墨韻生';
+      period = optionalPeriod || '當代';
+    }
+
+    // 計算各意象原型得分
+    const scores = {};
+    for (const key in IMAGERY_ARCHETYPES) {
+      scores[key] = 0;
+      const def = IMAGERY_ARCHETYPES[key];
+      // 標題命中加重權重
+      for (const kw of def.keywords) {
+        if (title.includes(kw)) scores[key] += 12;
+        // 內文匹配
+        const matches = (fullText.match(new RegExp(kw, 'g')) || []).length;
+        if (matches > 0) scores[key] += Math.min(matches * 3, 15);
+      }
+    }
+
+    // 找出最高得分的 archetype
+    let bestKey = 'vast_river', maxScore = -1;
+    for (const key in scores) {
+      if (scores[key] > maxScore) {
+        maxScore = scores[key];
+        bestKey = key;
+      }
+    }
+    // 預設兜底
+    if (maxScore <= 0) {
+      if (fullText.includes('山') || fullText.includes('峰')) bestKey = 'high_mountain';
+      else if (fullText.includes('雪') || fullText.includes('寒')) bestKey = 'snow_solitude';
+      else if (fullText.includes('花') || fullText.includes('春')) bestKey = 'misty_willow';
+      else bestKey = 'vast_river';
+    }
+
+    const archetype = IMAGERY_ARCHETYPES[bestKey];
+
+    // 提取原文章的真實書法文字
+    const poemLines = extractOriginalArticleLines(itemOrText);
+
+    // 專屬落款署名
+    const inscription = `${period ? period + '·' : ''}${author ? author : ''}《${title}》 原文 墨韻題`;
+
+    return {
+      archetype: archetype.name,
+      title: title,
+      author: author,
+      period: period,
+      archetypeTitle: archetype.title,
+      mood: archetype.mood,
+      composition: archetype.composition,
+      inkStyle: archetype.inkStyle,
+      hasBoat: archetype.hasBoat,
+      hasBirds: archetype.hasBirds,
+      hasSunMoon: archetype.hasSunMoon,
+      critique: archetype.critique,
+      poemLines: poemLines,
+      inscription: inscription
+    };
+  }
+
+  // 2. 提取原文章真實文字（絕句全篇、律詩全篇、詞牌全文、散文精粹）
+  function extractOriginalArticleLines(itemOrText) {
+    if (!itemOrText) return ['墨池飛白', '筆意天成', '山川在握', '風月滿胸'];
+
+    // 若為古典詩文資料庫物件
+    if (typeof itemOrText === 'object' && itemOrText !== null) {
+      const form = itemOrText.form || '';
+      const lines = itemOrText.lines || [];
+
+      // 詩歌（絕句或律詩）
+      if (form === '詩') {
+        const cleanLines = [];
+        for (const l of lines) {
+          const clean = l.replace(/（.*?）/g, '').replace(/\(.*?\)/g, '').trim();
+          if (!clean) continue;
+          const parts = clean.split(/[，。！？；]/).map(s => s.trim()).filter(Boolean);
+          cleanLines.push(...parts);
+        }
+        // 如果是四句（絕句）或八句（律詩），原封不動完整呈現！
+        if (cleanLines.length >= 4 && cleanLines.length <= 12) {
+          return cleanLines;
+        }
+      }
+
+      // 詞牌或散曲
+      if (form === '詞' || form === '曲') {
+        const cleanLines = [];
+        for (const l of lines) {
+          const clean = l.replace(/（.*?）/g, '').replace(/\(.*?\)/g, '').trim();
+          if (!clean) continue;
+          const parts = clean.split(/[，。！？；、]/).map(s => s.trim()).filter(Boolean);
+          cleanLines.push(...parts);
+        }
+        if (cleanLines.length > 0) {
+          return cleanLines.slice(0, 10);
+        }
+      }
+
+      // 散文、辭賦、古文
+      if (itemOrText.quote && itemOrText.quote.length > 0) {
+        const quoteText = itemOrText.quote.join('，');
+        const parts = quoteText.split(/[，。！？；]/).map(s => s.trim()).filter(s => s.length >= 3 && s.length <= 10);
+        if (parts.length >= 4) {
+          return parts.slice(0, 8);
+        }
+      }
+
+      // 一般 lines 切分
+      const allLines = [];
+      for (const l of lines) {
+        const parts = l.split(/[，。！？；]/).map(s => s.trim()).filter(s => s.length >= 3);
+        allLines.push(...parts);
+      }
+      if (allLines.length >= 4) {
+        return allLines.slice(0, 8);
+      }
+    }
+
+    // 純文字字串處理
+    const textStr = typeof itemOrText === 'string' ? itemOrText : JSON.stringify(itemOrText);
+    const cleaned = textStr.replace(/[\r\n]+/g, '，').replace(/[。！？；]/g, '，');
+    const segs = cleaned.split('，').map(s => s.trim().replace(/[^\u4e00-\u9fa5]/g, '')).filter(s => s.length >= 4 && s.length <= 8);
+    if (segs.length >= 4) {
+      return segs.slice(0, 8);
+    } else if (segs.length >= 2) {
+      return segs;
+    }
+
+    return ['一筆落空山', '雲從墨裡還', '無人知此意', '流水自潺潺'];
+  }
+
+  // 導出模組
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { IMAGERY_ARCHETYPES, analyzeLiteraryConcept, extractOriginalArticleLines };
+  } else {
+    root.IMAGERY_ARCHETYPES = IMAGERY_ARCHETYPES;
+    root.analyzeLiteraryConcept = analyzeLiteraryConcept;
+    root.extractOriginalArticleLines = extractOriginalArticleLines;
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   神思賦畫 · 文人畫十大意象專屬繪畫管線
+   10 Literary Ink Painting Archetype Generators
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+(function(root) {
+
+  // 1. 傲雪寒梅（折枝法、虯曲老幹、朱砂綴英）
+  function renderPlumBlossom(ctx) {
+    const { S, D, W, rr } = ctx;
+    // 湖石一尊
+    const rockBaseX = rr(0.72, 0.82), rockBaseY = 0.08;
+    const rockPts = [
+      [rockBaseX - W(0.06), rockBaseY],
+      [rockBaseX - W(0.08), rockBaseY + 0.12],
+      [rockBaseX - W(0.04), rockBaseY + 0.22],
+      [rockBaseX + W(0.02), rockBaseY + 0.26],
+      [rockBaseX + W(0.07), rockBaseY + 0.18],
+      [rockBaseX + W(0.05), rockBaseY]
+    ];
+    S(rockPts, { r: 0.004, ink: 0.9, water: 0.2, dry: 0.35, speed: 0.6, after: 0.1 });
+    // 湖石皴紋與孔竅
+    for (let k = 0; k < 4; k++) {
+      D(rockBaseX + W(rr(-0.04, 0.04)), rockBaseY + rr(0.05, 0.2), { r: rr(0.008, 0.018), ink: 1.1, dry: 0.5, after: 0.03 });
+    }
+
+    // 老梅主幹（自右下破空而出，女字形交錯）
+    const tx0 = rr(0.85, 0.92), ty0 = 0.05;
+    const trunk1 = [
+      [tx0, ty0],
+      [tx0 - W(0.08), ty0 + 0.15],
+      [tx0 - W(0.18), ty0 + 0.32],
+      [tx0 - W(0.26), ty0 + 0.52],
+      [tx0 - W(0.38), ty0 + 0.68]
+    ];
+    S(trunk1, { r: 0.0068, ink: 1.3, water: 0.15, dry: 0.45, dryGrow: 0.5, speed: 0.45, note: 0.08, vel: 0.5, after: 0.15 });
+
+    // 次幹與回折枝（虯龍曲折）
+    const branch1 = [
+      [tx0 - W(0.18), ty0 + 0.32],
+      [tx0 - W(0.12), ty0 + 0.45],
+      [tx0 - W(0.08), ty0 + 0.62],
+      [tx0 - W(0.14), ty0 + 0.78]
+    ];
+    S(branch1, { r: 0.0042, ink: 1.15, water: 0.18, dry: 0.35, speed: 0.6, after: 0.08 });
+
+    // 挺拔新梢（直如長矛，健如勁弓）
+    const tips = [];
+    for (let i = 0; i < 6; i++) {
+      const sx = tx0 - W(rr(0.12, 0.36)), sy = ty0 + rr(0.35, 0.65);
+      const angle = rr(1.8, 2.7);
+      const len = rr(0.12, 0.22);
+      const twig = [
+        [sx, sy],
+        [sx + W(Math.cos(angle) * len * 0.5), sy + Math.sin(angle) * len * 0.5],
+        [sx + W(Math.cos(angle + rr(-0.2, 0.2)) * len), sy + Math.sin(angle + rr(-0.2, 0.2)) * len]
+      ];
+      S(twig, { r: 0.0022, ink: 1.0, water: 0.1, dry: 0.25, speed: 0.8, note: 0.05, after: 0.04 });
+      tips.push(twig[1], twig[2]);
+    }
+
+    // 繁密梅花點染（朱砂花瓣 + 墨梅花蕊）
+    for (let j = 0; j < 32; j++) {
+      const basePt = tips[j % tips.length];
+      const flX = basePt[0] + W(rr(-0.025, 0.025));
+      const flY = basePt[1] + rr(-0.025, 0.025);
+      // 朱砂梅瓣
+      D(flX, flY, { r: rr(0.004, 0.0075), cin: 1.45, ink: 0, water: 0.25, hard: 1, after: 0.025 });
+      // 花蕊與花托
+      if (Math.random() < 0.6) {
+        D(flX, flY, { r: 0.0018, ink: 1.2, cin: 0, water: 0.05, after: 0.015 });
+      }
+    }
+  }
+
+  // 2. 空山修竹（空山勁竹、節節分明、個介撇葉）
+  function renderBamboo(ctx) {
+    const { S, D, W, rr } = ctx;
+    // 坡石一組
+    const stoneX = rr(0.68, 0.78), stoneY = 0.06;
+    S([
+      [stoneX - W(0.12), stoneY],
+      [stoneX - W(0.06), stoneY + 0.1],
+      [stoneX + W(0.08), stoneY + 0.08],
+      [stoneX + W(0.14), stoneY]
+    ], { r: 0.0045, ink: 0.95, water: 0.25, dry: 0.4, speed: 0.7, after: 0.1 });
+
+    // 3~4 竿修竹
+    const culmCount = 4;
+    for (let c = 0; c < culmCount; c++) {
+      const bx = stoneX - W(0.08) + c * W(0.055) + rr(-0.01, 0.01);
+      let curY = stoneY + 0.02;
+      const nodes = 7;
+      const culmInk = c === 1 ? 1.25 : c === 2 ? 0.9 : 1.1;
+      const culmRadius = (0.0042 - c * 0.0006);
+
+      for (let n = 0; n < nodes; n++) {
+        const segLen = rr(0.09, 0.13);
+        const nextY = curY + segLen;
+        // 竹竿一節（挺健中鋒）
+        S([[bx, curY + 0.004], [bx + W(rr(-0.002, 0.002)), nextY - 0.004]], {
+          r: culmRadius, ink: culmInk, water: 0.15, dry: 0.2, speed: 0.8, note: 0.06, after: 0.03
+        });
+        // 雀爪竹節
+        D(bx, nextY, { r: culmRadius * 1.5, ink: 1.35 * culmInk, water: 0.05, hard: 1, after: 0.02 });
+
+        // 自竹節抽生細枝與「個」「介」字竹葉
+        if (n >= 2) {
+          const branchSide = (n + c) % 2 === 0 ? -1 : 1;
+          const brLen = rr(0.04, 0.07);
+          const bEnd = [bx + W(branchSide * brLen), nextY + rr(0.01, 0.03)];
+          S([[bx, nextY], bEnd], { r: 0.0018, ink: culmInk, water: 0.1, speed: 1.0, after: 0.02 });
+
+          // 撇葉三至五筆（個字、介字排筆）
+          const leafGroup = Math.floor(rr(3, 5));
+          for (let L = 0; L < leafGroup; L++) {
+            const angle = (branchSide > 0 ? 0.3 : 2.8) + (L - 1) * 0.35 + rr(-0.1, 0.1);
+            const leafLen = rr(0.035, 0.065);
+            const leafEnd = [bEnd[0] + W(Math.cos(angle) * leafLen), bEnd[1] - Math.sin(angle) * leafLen * 0.6];
+            S([bEnd, leafEnd], {
+              r: 0.0028, ink: culmInk * 1.1, water: 0.18, dry: 0.15, speed: 1.2, note: 0.04, after: 0.015
+            });
+          }
+        }
+        curY = nextY;
+      }
+    }
+  }
+
+  // 3. 仙山樓閣 / 臨江亭台（飛檐斗拱、歇山危樓、蒼松環抱）
+  function renderPavilion(ctx) {
+    const { S, D, W, rr, mountain, range } = ctx;
+    // 依傍之高崖山基
+    const cliffBase = range([{ c: 0.28, h: 0.28, w: 0.18 }], 0.12, 0.01);
+    mountain(cliffBase, 0.12, { ink: 1.1, s: 1.1, cun: 16, folds: 4, x0: 0.1, x1: 0.48, dry: 0.2 });
+
+    // 樓閣基座位置
+    const px = 0.28, py = 0.42;
+    const pw = 0.085, ph = 0.07;
+
+    // 樓閣二層歇山頂上檐（向上飛展飛檐）
+    const topRoof = [
+      [px - W(pw * 0.7), py + ph * 0.95],
+      [px - W(pw * 0.45), py + ph * 0.88],
+      [px, py + ph * 0.92],
+      [px + W(pw * 0.45), py + ph * 0.88],
+      [px + W(pw * 0.7), py + ph * 0.95]
+    ];
+    S(topRoof, { r: 0.0035, ink: 1.3, water: 0.1, dry: 0.1, speed: 0.5, note: 0.08, after: 0.08 });
+
+    // 上層立柱與朱閣窗欞
+    S([[px - W(pw * 0.35), py + ph * 0.88], [px - W(pw * 0.35), py + ph * 0.55]], { r: 0.0022, ink: 1.1, speed: 0.8 });
+    S([[px + W(pw * 0.35), py + ph * 0.88], [px + W(pw * 0.35), py + ph * 0.55]], { r: 0.0022, ink: 1.1, speed: 0.8 });
+    S([[px, py + ph * 0.9], [px, py + ph * 0.55]], { r: 0.002, ink: 1.0, speed: 0.8, after: 0.05 });
+
+    // 下層飛檐（展翅凌空）
+    const midRoof = [
+      [px - W(pw * 0.9), py + ph * 0.58],
+      [px - W(pw * 0.55), py + ph * 0.52],
+      [px, py + ph * 0.55],
+      [px + W(pw * 0.55), py + ph * 0.52],
+      [px + W(pw * 0.9), py + ph * 0.58]
+    ];
+    S(midRoof, { r: 0.0042, ink: 1.35, water: 0.12, speed: 0.55, note: 0.09, after: 0.08 });
+
+    // 底層回廊與闌干
+    S([[px - W(pw * 0.5), py + ph * 0.52], [px - W(pw * 0.5), py]], { r: 0.0025, ink: 1.15, speed: 0.8 });
+    S([[px + W(pw * 0.5), py + ph * 0.52], [px + W(pw * 0.5), py]], { r: 0.0025, ink: 1.15, speed: 0.8 });
+    // 闌干橫格
+    S([[px - W(pw * 0.55), py + ph * 0.18], [px + W(pw * 0.55), py + ph * 0.18]], { r: 0.002, ink: 0.95, speed: 1.0, after: 0.06 });
+
+    // 樓閣旁掩映之老松
+    const tree = ctx.tree;
+    if (tree) {
+      tree(px + W(pw * 0.85), py - 0.02, 0.22, 1.2, false, 0);
+    }
+  }
+
+  // 4. 懸泉飛瀑（崇山對峙、千尺飛練、水霧激石）
+  function renderWaterfall(ctx) {
+    const { S, D, W, rr, mountain, range } = ctx;
+    const wX = 0.42;
+
+    // 左崖絕壁（大斧劈皴）
+    const leftCliff = range([{ c: wX - 0.16, h: 0.48, w: 0.14 }], 0.25, 0.01);
+    mountain(leftCliff, 0.25, { ink: 1.3, s: 1.15, cun: 24, folds: 6, x0: 0.15, x1: wX - 0.02, dry: 0.35 });
+
+    // 右崖絕壁
+    const rightCliff = range([{ c: wX + 0.16, h: 0.42, w: 0.13 }], 0.25, 0.01);
+    mountain(rightCliff, 0.25, { ink: 1.25, s: 1.1, cun: 20, folds: 5, x0: wX + 0.02, x1: 0.72, dry: 0.3 });
+
+    // 懸泉三疊（飛流直下）
+    const fallTop = 0.65, fallMid = 0.42, fallBot = 0.22;
+    // 第一疊
+    for (let i = -2; i <= 2; i++) {
+      S([[wX + W(i * 0.004), fallTop], [wX + W(i * 0.005 + 0.006), fallMid]], {
+        r: 0.0024, ink: 0.8, water: 0.25, dry: 0.5, speed: 1.6, note: 0.12, after: 0.02
+      });
+    }
+    // 中疊激石留痕
+    D(wX + W(0.005), fallMid, { r: 0.014, ink: 1.2, water: 0.4, after: 0.05 });
+    // 第二疊奔騰入潭
+    for (let i = -3; i <= 3; i++) {
+      S([[wX + W(i * 0.005 + 0.006), fallMid], [wX + W(i * 0.008 - 0.004), fallBot]], {
+        r: 0.0028, ink: 0.85, water: 0.3, dry: 0.6, speed: 2.0, note: 0.14, after: 0.02
+      });
+    }
+
+    // 潭底水氣激盪
+    for (let d = 0; d < 4; d++) {
+      D(wX + W(rr(-0.04, 0.04)), fallBot - rr(0.01, 0.04), {
+        r: rr(0.03, 0.06), ink: 0.12, water: 0.85, after: 0.03
+      });
+    }
+  }
+
+  // 5. 大漠孤煙 · 長河落日（平沙莽莽、孤煙如線、落日如血，絕無舟船）
+  function renderDesert(ctx) {
+    const { S, D, W, rr } = ctx;
+    // 平緩起伏的沙丘線條（乾筆渴墨）
+    for (let i = 0; i < 4; i++) {
+      const baseY = 0.12 + i * 0.09;
+      const pts = [];
+      const ph = i * 1.5;
+      for (let x = 0; x <= 1.0; x += 0.04) {
+        pts.push([x, baseY + Math.sin(x * 6 + ph) * 0.025]);
+      }
+      S(pts, { r: 0.0038, ink: 0.75 - i * 0.12, water: 0.08, dry: 0.55, speed: 1.1, note: 0.09, after: 0.05 });
+    }
+
+    // 蜿蜒長河（自天際漫漫而來）
+    const riverPts = [];
+    for (let x = 0.25; x <= 0.95; x += 0.03) {
+      riverPts.push([x, 0.28 - Math.sin(x * 4) * 0.04 + (x - 0.25) * 0.08]);
+    }
+    S(riverPts, { r: 0.0032, ink: 0.55, water: 0.35, dry: 0.3, speed: 1.4, note: 0.1, after: 0.08 });
+
+    // 大漠孤煙直（直衝雲漢，垂直無彎）
+    const smokeX = 0.32;
+    const smokePts = [];
+    for (let y = 0.22; y <= 0.84; y += 0.03) {
+      smokePts.push([smokeX + W(Math.sin(y * 12) * 0.002), y]);
+    }
+    S(smokePts, { r: 0.0045, ink: 1.25, water: 0.15, dry: 0.4, speed: 0.65, note: 0.08, after: 0.15 });
+
+    // 長河落日圓（如血碩大圓日）
+    const sunX = 0.72, sunY = 0.74;
+    D(sunX, sunY, { r: 0.056, ink: 0, cin: 1.7, water: 0.12, hard: 1, after: 0.8, chime: true });
+  }
+
+  // 6. 赤壁穿空 · 驚濤拍岸（巨壁橫空、大浪翻江、扁舟一葉）
+  function renderRockyCliff(ctx) {
+    const { S, D, W, rr, mountain, range } = ctx;
+    const cliffX = 0.24;
+
+    // 赤壁斷崖（巍峨拔起，大斧劈皴）
+    const cliff = range([{ c: cliffX, h: 0.58, w: 0.15 }], 0.22, 0.012);
+    mountain(cliff, 0.22, { ink: 1.4, s: 1.25, cun: 38, folds: 8, x0: 0, x1: 0.55, dry: 0.4 });
+
+    // 捲起千堆雪：江心驚濤駭浪
+    for (let w = 0; w < 8; w++) {
+      const wy = 0.14 + w * 0.035;
+      const wx0 = 0.35 + rr(-0.04, 0.04);
+      const wave = [
+        [wx0, wy],
+        [wx0 + W(0.12), wy + 0.03],
+        [wx0 + W(0.24), wy - 0.01],
+        [wx0 + W(0.38), wy + 0.025]
+      ];
+      S(wave, { r: 0.0035, ink: 0.9, water: 0.2, dry: 0.55, speed: 1.5, note: 0.1, after: 0.04 });
+      // 浪花白雪點染
+      D(wx0 + W(0.12), wy + 0.035, { r: 0.008, ink: 0.3, water: 0.5, after: 0.02 });
+    }
+
+    // 蘇子赤壁一葉扁舟
+    const bx = 0.68, by = 0.24;
+    S([[bx - W(0.045), by + 0.01], [bx, by], [bx + W(0.045), by + 0.01]], { r: 0.0035, ink: 1.2, speed: 0.4 });
+    D(bx, by + 0.018, { r: 0.005, ink: 1.3, after: 0.1 });
+  }
+
+  // 7. 煙雨江南 · 柳岸春曉（依依長柳、煙雨江南、雙飛春燕）
+  function renderMistyWillows(ctx) {
+    const { S, D, W, rr } = ctx;
+    // 平緩春岸
+    const bankPts = [
+      [0.05, 0.12], [0.22, 0.15], [0.45, 0.14], [0.65, 0.18], [0.85, 0.16]
+    ];
+    S(bankPts, { r: 0.0048, ink: 0.85, water: 0.35, dry: 0.15, speed: 0.8, after: 0.1 });
+
+    // 2~3 株垂柳
+    const tx = 0.28, ty = 0.15;
+    // 柳樹老幹（虯曲低垂）
+    const trunk = [
+      [tx, ty],
+      [tx + W(0.04), ty + 0.12],
+      [tx + W(0.06), ty + 0.24],
+      [tx + W(0.02), ty + 0.35]
+    ];
+    S(trunk, { r: 0.0055, ink: 1.15, water: 0.2, dry: 0.25, speed: 0.6, after: 0.08 });
+
+    // 飄拂垂柳細絲（萬條垂下綠絲絛）
+    for (let s = 0; s < 18; s++) {
+      const topX = tx + W(rr(-0.06, 0.16)), topY = ty + rr(0.24, 0.38);
+      const len = rr(0.14, 0.28);
+      const sway = rr(-0.03, 0.05);
+      const stringPts = [
+        [topX, topY],
+        [topX + W(sway * 0.4), topY - len * 0.5],
+        [topX + W(sway), topY - len]
+      ];
+      S(stringPts, { r: 0.0016, ink: 0.8, water: 0.25, dry: 0.1, speed: 0.9, after: 0.02 });
+      // 嫩芽點染
+      if (s % 2 === 0) {
+        D(stringPts[1][0], stringPts[1][1], { r: 0.0035, ink: 0.6, cin: 0.3, water: 0.4, after: 0.01 });
+      }
+    }
+
+    // 雙飛春燕
+    const yx1 = 0.62, yy1 = 0.68;
+    S([[yx1 - W(0.015), yy1 + 0.006], [yx1, yy1], [yx1 + W(0.015), yy1 + 0.006]], { r: 0.002, ink: 1.2, speed: 0.3 });
+    const yx2 = 0.68, yy2 = 0.72;
+    S([[yx2 - W(0.015), yy2 + 0.006], [yx2, yy2], [yx2 + W(0.015), yy2 + 0.006]], { r: 0.002, ink: 1.2, speed: 0.3, after: 0.1 });
+  }
+
+  // 8. 寒江雪霽 · 萬徑空寂（千山鳥飛絕、枯木無葉、簑笠孤釣）
+  function renderSnowSolitude(ctx) {
+    const { S, D, W, rr, mountain, range } = ctx;
+    // 積雪荒山（淡墨微勾，大量留白）
+    const snowPeaks = range([{ c: 0.35, h: 0.38, w: 0.14 }, { c: 0.65, h: 0.28, w: 0.12 }], 0.28, 0.008);
+    mountain(snowPeaks, 0.28, {
+      ink: 0.45, s: 0.85, cun: 6, folds: 2, moss: 0, x0: 0, x1: 1.0, dry: 0.45, water: 0.15
+    });
+
+    // 枯木寒林（無葉蟹爪枝）
+    const tx = 0.16, ty = 0.28;
+    const trunk = [
+      [tx, ty],
+      [tx - W(0.02), ty + 0.1],
+      [tx + W(0.01), ty + 0.18],
+      [tx + W(0.03), ty + 0.26]
+    ];
+    S(trunk, { r: 0.0042, ink: 0.9, dry: 0.5, speed: 0.6, after: 0.05 });
+    // 枯杈
+    S([[tx + W(0.01), ty + 0.18], [tx - W(0.03), ty + 0.24]], { r: 0.0022, ink: 0.8, dry: 0.5 });
+    S([[tx + W(0.03), ty + 0.26], [tx + W(0.06), ty + 0.32]], { r: 0.002, ink: 0.8, dry: 0.5, after: 0.05 });
+
+    // 孤舟簑笠翁，獨釣寒江雪
+    const bx = 0.58, by = 0.16;
+    S([[bx - W(0.038), by + 0.008], [bx, by], [bx + W(0.038), by + 0.008]], { r: 0.003, ink: 1.1, water: 0.1, speed: 0.3 });
+    // 簑笠釣翁
+    D(bx - W(0.005), by + 0.014, { r: 0.0045, ink: 1.25, after: 0.08 });
+    // 釣竿與絲線
+    S([[bx - W(0.008), by + 0.02], [bx - W(0.045), by + 0.038]], { r: 0.0014, ink: 0.85, dry: 0.3, speed: 0.4 });
+
+    // 寒江冷月
+    D(0.78, 0.82, { r: 0.034, ink: 0.22, cin: 0, water: 0.6, hard: 0, after: 0.6, chime: true });
+    // 嚴格禁止繪製任何翔鳥（千山鳥飛絕！）
+  }
+
+  // 導出模組
+  const PAINTERS = {
+    plum_blossom: renderPlumBlossom,
+    bamboo: renderBamboo,
+    pavilion: renderPavilion,
+    waterfall: renderWaterfall,
+    desert: renderDesert,
+    rocky_cliff: renderRockyCliff,
+    misty_willow: renderMistyWillows,
+    snow_solitude: renderSnowSolitude
+  };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = PAINTERS;
+  } else {
+    root.LITERARY_IMAGERY_PAINTERS = PAINTERS;
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
 /* ───────── Landscape Generator with Literary Mood Modulation ───────── */
 function buildLandscape(seed, customConfig = null){
   const R = rng(seed), rr = (a, b) => a + (b - a) * R();
   const A = aspect(), portrait = A < .85;
   const cfg = customConfig || {};
   const mood = cfg.mood || 'ethereal';
+  const archetype = cfg.archetype || 'vast_river';
 
   const yb = portrait ? .1 : .085, ys = portrait ? .88 : .9, M = y => yb + y * ys;
   const wx = A < 1 ? Math.min(1.6, .75 / A) : 1;
@@ -1702,124 +2419,119 @@ function buildLandscape(seed, customConfig = null){
     }
   }
 
-  // 1. 遠山 (Far mountain range)
-  const isWinter = mood === 'snow_winter';
-  const isVastRiver = mood === 'vast_river';
-  const isMajestic = mood === 'majestic_peaks' || mood === 'heroic';
-  const isAutumn = mood === 'autumn_sunset';
-  const isSpring = mood === 'spring_breeze';
+  const ctx = { S, D, W, rr, mountain, range, tree };
+  const painters = (typeof window !== "undefined" ? window : globalThis).LITERARY_IMAGERY_PAINTERS || {};
 
-  const farBase = isVastRiver ? rr(.42, .48) : isWinter ? rr(.38, .44) : rr(.36, .4);
-  const farPeaks = [];
-  const farCount = isVastRiver ? 7 : 5;
-  for (let i = 0; i < farCount; i++) {
-    farPeaks.push({ c: rr(-.05, 1.05), h: isVastRiver ? rr(.04, .09) : rr(.06, .15), w: rr(.07, .16) });
-  }
-  const far = range(farPeaks, farBase, .006);
-  for (const run of runs(far, farBase, 0, 1, .008, .008)) {
-    S(run, { r: .0045, ink: isWinter ? .15 : .22, water: .8, dry: isWinter ? .3 : 0, speed: .9, note: .14, vel: .35 });
-  }
-  for (let j = 0; j < (isVastRiver ? 3 : 5); j++) {
-    const off = .01 + j * .02, ij = (isWinter ? .08 : .12) * (1 - j / 5.5);
-    for (const run of runs(x => far(x) - off, farBase, 0, 1, .02, .004))
-      S(run, { r: .022, ink: ij, water: .75, speed: 3, note: .3, after: .02, vel: .22 });
-  }
+  // ════════ 根據意象原型分流專屬畫意管線 ════════
+  if (archetype === 'plum_blossom' && painters.plum_blossom) {
+    // 傲雪寒梅：折枝老幹、朱砂綴英、湖石雪痕（無舟無鳥）
+    painters.plum_blossom(ctx);
+  } else if (archetype === 'bamboo' && painters.bamboo) {
+    // 空山修竹：挺拔竹竿、拔節留白、個介撇葉（無舟無鳥）
+    painters.bamboo(ctx);
+  } else if (archetype === 'desert' && painters.desert) {
+    // 大漠孤煙：起伏荒丘、垂直孤煙、長河落日圓（無舟無鳥）
+    painters.desert(ctx);
+  } else if (archetype === 'pavilion' && painters.pavilion) {
+    // 仙山樓閣：重檐歇山、飛檐挑角、長江浩渺
+    const farBase = rr(.42, .48);
+    const farPeaks = [];
+    for (let i = 0; i < 5; i++) farPeaks.push({ c: rr(-.05, 1.05), h: rr(.05, .11), w: rr(.08, .16) });
+    const far = range(farPeaks, farBase, .006);
+    for (const run of runs(far, farBase, 0, 1, .008, .008)) S(run, { r: .004, ink: .2, water: .8, speed: .9, note: .14 });
+    painters.pavilion(ctx);
+    // 長江水紋與舟楫
+    for (let i = 0; i < 5; i++) {
+      const y = rr(.1, .25), xa = rr(.45, .55), xb = Math.min(xa + rr(.2, .4), .98);
+      const pts = []; for (let x = xa; x <= xb; x += .015) pts.push([x, y + Math.sin(x * 50) * .002]);
+      S(pts, { r: .002, ink: .4, water: .15, dry: .4, speed: 1.3, note: .1, after: .03 });
+    }
+    const bx = rr(.65, .75), by = rr(.16, .22);
+    S([[bx - W(.04), by + .008], [bx, by], [bx + W(.04), by + .008]], { r: .003, ink: 1.1, speed: .3 });
+  } else if (archetype === 'waterfall' && painters.waterfall) {
+    // 懸泉飛瀑：雙崖夾峙、三疊懸泉、水霧激石
+    painters.waterfall(ctx);
+  } else if (archetype === 'rocky_cliff' && painters.rocky_cliff) {
+    // 赤壁穿空：巨壁橫空、大斧劈皴、千堆雪浪、孤舟一葉
+    painters.rocky_cliff(ctx);
+  } else if (archetype === 'misty_willow' && painters.misty_willow) {
+    // 煙雨江南：依依垂柳、煙雨春風、雙飛春燕
+    const farBase = rr(.36, .42);
+    const farPeaks = [];
+    for (let i = 0; i < 4; i++) farPeaks.push({ c: rr(-.05, 1.05), h: rr(.04, .08), w: rr(.1, .18) });
+    const far = range(farPeaks, farBase, .006);
+    for (const run of runs(far, farBase, 0, 1, .01, .008)) S(run, { r: .0038, ink: .16, water: .85, speed: .9, note: .14 });
+    painters.misty_willow(ctx);
+  } else if (archetype === 'snow_solitude' && painters.snow_solitude) {
+    // 寒江雪霽：荒寒千山鳥絕（絕無飛鳥！）、枯林寒樹、獨釣孤舟
+    painters.snow_solitude(ctx);
+  } else if (archetype === 'high_mountain') {
+    // 萬仞崇山：高遠主峰拔地而起、次峰相隨、古松森列、雲海蒸騰
+    const isWinter = mood === 'snow_winter';
+    const farBase = rr(.38, .44);
+    const farPeaks = [];
+    for (let i = 0; i < 6; i++) farPeaks.push({ c: rr(-.05, 1.05), h: rr(.07, .16), w: rr(.08, .16) });
+    const far = range(farPeaks, farBase, .006);
+    for (const run of runs(far, farBase, 0, 1, .008, .008)) S(run, { r: .0045, ink: .22, water: .8, speed: .9, note: .14, vel: .35 });
 
-  // 2. 主峰 (Main peak)
-  const c0 = isVastRiver ? rr(.25, .32) : rr(.3, .4);
-  const mBase = isVastRiver ? rr(.33, .37) : rr(.29, .32);
-  const mainH = isMajestic ? rr(.44, .52) : isVastRiver ? rr(.22, .29) : rr(.38, .44);
-  const main = range([
-    { c: c0, h: mainH, w: isMajestic ? rr(.11, .14) : rr(.09, .12) },
-    { c: c0 + rr(.08, .12) * wx, h: mainH * .55, w: rr(.06, .08) },
-    { c: c0 - rr(.09, .13) * wx, h: mainH * .45, w: rr(.06, .09) }
-  ], mBase, .012);
-  
-  mountain(main, mBase, {
-    ink: isMajestic ? 1.25 : isWinter ? .85 : 1,
-    s: isMajestic ? 1.2 : 1,
-    cun: isMajestic ? 36 : isWinter ? 12 : 26,
-    moss: isWinter ? 3 : isSpring ? 20 : 14,
-    folds: isMajestic ? 7 : isWinter ? 3 : 5,
-    x0: 0, x1: isVastRiver ? .65 : .78,
-    dry: isWinter ? .35 : 0,
-    water: isSpring ? .35 : .25
-  });
+    const c0 = rr(.32, .42), mBase = rr(.29, .33), mainH = rr(.46, .55);
+    const main = range([
+      { c: c0, h: mainH, w: rr(.12, .15) },
+      { c: c0 + rr(.08, .12) * wx, h: mainH * .6, w: rr(.06, .08) },
+      { c: c0 - rr(.09, .13) * wx, h: mainH * .5, w: rr(.06, .09) }
+    ], mBase, .012);
+    mountain(main, mBase, { ink: 1.35, s: 1.25, cun: 38, moss: 16, folds: 8, x0: 0, x1: .8, dry: .2 });
 
-  // 3. 次峰 (Second peak)
-  const c1 = rr(.68, .78), sBase = .27;
-  const secondH = isMajestic ? rr(.26, .34) : isVastRiver ? rr(.14, .18) : rr(.2, .26);
-  const second = range([{ c: c1, h: secondH, w: rr(.07, .09) }, { c: c1 + rr(.07, .1) * wx, h: secondH * .5, w: .06 }], sBase, .01);
-  mountain(second, sBase, {
-    ink: .7, s: .9,
-    cun: isWinter ? 6 : 14,
-    moss: isWinter ? 2 : 8,
-    folds: 3, x0: .45, x1: 1,
-    dry: isWinter ? .3 : 0
-  });
-
-  // 4. 近岸 (Near river bank)
-  const bank = range([{ c: rr(.08, .16), h: rr(.07, .1), w: rr(.12, .18) }, { c: rr(.28, .34), h: rr(.03, .05), w: .06 }], .08, .006);
-  mountain(bank, .08, {
-    ink: 1, s: 1.1,
-    cun: isWinter ? 4 : 10,
-    moss: isWinter ? 2 : 6,
-    folds: 2, x0: 0, x1: .46,
-    dry: isWinter ? .3 : 0
-  });
-
-  // 5. 樹木 (Trees)
-  const treeCount = isWinter ? 2 : isMajestic ? 4 : 3;
-  const tx0 = rr(.05, .08), gap = rr(.055, .075) * Math.min(wx, 1.3);
-  for (let i = 0; i < treeCount; i++) {
-    const tx = tx0 + i * gap + rr(-.01, .01);
-    tree(tx, bank(tx) - .004, rr(.15, .24), i === 1 ? .55 : 1, isWinter, isAutumn ? .75 : 0);
-  }
-
-  // 6. 水紋 (Water ripples)
-  const rippleCount = isVastRiver ? 10 : isWinter ? 3 : 6;
-  for (let i = 0; i < rippleCount; i++) {
-    const y = isVastRiver ? rr(.06, .35) : rr(.09, .25);
-    const xa = isVastRiver ? rr(.25, .45) : rr(.38, .55);
-    const xb = Math.min(xa + rr(.15, .55), .98);
-    const ph = rr(0, 6), pts = [];
-    for (let x = xa; x <= xb; x += .01) pts.push([x, y + Math.sin(x * 60 + ph) * .002]);
-    S(pts, { r: .0019, ink: isWinter ? .25 : .5, water: .1, dry: isWinter ? .6 : .5, dryGrow: .3, fade: .6, speed: 1.4, note: .11, after: .05, vel: .35 });
-  }
-
-  // 7. 舟船與釣者 (Boat & Fisherman)
-  const hasBoat = true;
-  if (hasBoat) {
-    const bx = rr(.54, .66), by = isVastRiver ? rr(.18, .26) : rr(.16, .2);
-    S([[bx - W(.04), by + .009], [bx - W(.022), by + .001], [bx, by - .001], [bx + W(.022), by + .001], [bx + W(.045), by + .011]], { r: .0034, ink: 1.2, water: .2, speed: .3, note: .05 });
-    D(bx + W(.004), by + .016, { r: .0045, ink: 1.3, water: .2, after: .15 });
-    S([[bx - W(.008), by + .023], [bx + W(.004), by + .029], [bx + W(.016), by + .023]], { r: .002, ink: 1.1, speed: .3 });
-    S([[bx + W(.014), by + .045], [bx + W(.05), by - .022]], { r: .0016, ink: .9, dry: .3, speed: .5 });
-    S([[bx - W(.055), by - .007], [bx + W(.06), by - .008]], { r: .0015, ink: .35, dry: .4, speed: 1 });
-  }
-
-  // 8. 翔鳥 (Flying birds)
-  const birdCount = isWinter ? 1 : isAutumn ? 5 : 3;
-  const bbx = portrait ? rr(.66, .7) : rr(.5, .6), bby = portrait ? rr(.64, .68) : rr(.8, .86);
-  for (let i = 0; i < birdCount; i++) {
-    const x = bbx + W(i * .028 + rr(-.005, .005)), y = bby + (i % 2) * .012 + rr(-.004, .004), s = rr(.8, 1.2);
-    S([[x - W(.014 * s), y + .005 * s], [x - W(.007 * s), y + .004 * s], [x, y - .002 * s], [x + W(.006 * s), y + .004 * s], [x + W(.013 * s), y + .007 * s]], { r: .0017, ink: 1.2, water: .1, speed: .35, note: .03, after: .12, vel: .3, kind: 'harm' });
-  }
-
-  // 9. 朝陽 / 落日 / 寒月 (Sun / Moon)
-  const sunX = portrait ? rr(.55, .64) : rr(.66, .8), sunY = portrait ? rr(.78, .82) : rr(.76, .84);
-  if (isWinter) {
-    // 寒江冷月 (Pale Cold Moon)
-    D(sunX, sunY, { r: .036, ink: .25, cin: 0, water: .5, hard: 0, after: .7, chime: true });
-  } else if (isAutumn) {
-    // 濃烈秋暮落日 (Rich Sunset Sun)
-    D(sunX, sunY, { r: .048, ink: 0, cin: 1.5, water: .12, hard: 1, after: .9, chime: true });
+    const bank = range([{ c: rr(.08, .16), h: rr(.07, .1), w: rr(.12, .18) }], .08, .006);
+    mountain(bank, .08, { ink: 1, s: 1.1, cun: 10, folds: 2, x0: 0, x1: .46, dry: 0 });
+    for (let i = 0; i < 3; i++) tree(rr(.06, .24), bank(.12) - .004, rr(.16, .24), 1, false, 0);
   } else {
-    // 經典朱砂朝陽 (Classical Cinnabar Sun)
+    // 萬里江天：平遠萬里長江、連綿水波、遠岫微茫、孤帆遠逝
+    const farBase = rr(.42, .48);
+    const farPeaks = [];
+    for (let i = 0; i < 7; i++) farPeaks.push({ c: rr(-.05, 1.05), h: rr(.04, .09), w: rr(.07, .16) });
+    const far = range(farPeaks, farBase, .006);
+    for (const run of runs(far, farBase, 0, 1, .008, .008)) S(run, { r: .0045, ink: .22, water: .8, speed: .9, note: .14, vel: .35 });
+
+    const main = range([{ c: .3, h: .24, w: .1 }], .35, .012);
+    mountain(main, .35, { ink: .9, s: 1, cun: 16, folds: 3, x0: 0, x1: .65, dry: 0 });
+
+    const bank = range([{ c: .12, h: .08, w: .14 }], .08, .006);
+    mountain(bank, .08, { ink: 1, s: 1.1, cun: 10, folds: 2, x0: 0, x1: .42, dry: 0 });
+    for (let i = 0; i < 2; i++) tree(.08 + i * .08, bank(.1) - .004, rr(.15, .22), 1, false, 0);
+
+    for (let i = 0; i < 8; i++) {
+      const y = rr(.08, .3), xa = rr(.28, .48), xb = Math.min(xa + rr(.2, .5), .98);
+      const ph = rr(0, 6), pts = [];
+      for (let x = xa; x <= xb; x += .012) pts.push([x, y + Math.sin(x * 60 + ph) * .002]);
+      S(pts, { r: .002, ink: .45, water: .15, dry: .4, speed: 1.4, note: .11, after: .04 });
+    }
+    const bx = rr(.58, .68), by = rr(.18, .26);
+    S([[bx - W(.04), by + .009], [bx, by - .001], [bx + W(.045), by + .011]], { r: .0034, ink: 1.2, speed: .3 });
+    D(bx, by + .016, { r: .0045, ink: 1.3, after: .15 });
+  }
+
+  // 飛鳥判斷（雪景嚴格不畫飛鳥）
+  const shouldDrawBirds = cfg.hasBirds !== false && archetype !== 'snow_solitude' && archetype !== 'desert' && archetype !== 'plum_blossom' && archetype !== 'bamboo';
+  if (shouldDrawBirds) {
+    const bbx = portrait ? rr(.66, .7) : rr(.5, .6), bby = portrait ? rr(.64, .68) : rr(.8, .86);
+    for (let i = 0; i < 3; i++) {
+      const x = bbx + W(i * .028 + rr(-.005, .005)), y = bby + (i % 2) * .012 + rr(-.004, .004), s = rr(.8, 1.2);
+      S([[x - W(.014 * s), y + .005 * s], [x, y - .002 * s], [x + W(.013 * s), y + .007 * s]], { r: .0017, ink: 1.2, speed: .35, note: .03, after: .1 });
+    }
+  }
+
+  // 日月判斷（特定意象專屬日暮冷月）
+  const sunX = portrait ? rr(.58, .66) : rr(.68, .82), sunY = portrait ? rr(.78, .84) : rr(.76, .84);
+  if (cfg.hasSunMoon === 'sunset' || mood === 'autumn_sunset') {
+    D(sunX, sunY, { r: .052, ink: 0, cin: 1.6, water: .12, hard: 1, after: .9, chime: true });
+  } else if (cfg.hasSunMoon === 'moon' || mood === 'snow_winter') {
+    D(sunX, sunY, { r: .038, ink: .25, cin: 0, water: .5, hard: 0, after: .7, chime: true });
+  } else if (cfg.hasSunMoon === 'sun') {
     D(sunX, sunY, { r: .042, ink: 0, cin: 1.25, water: .15, hard: 1, after: .9, chime: true });
   }
 
-  // 10. 題詩與鈐印 (Poem & Seal)
+  // 題寫原文章之真實文字與鈐印
   F(() => {
     if (cfg && cfg.poem) {
       showPoem(0, cfg.poem, cfg.seal, cfg.inscription);
@@ -1827,7 +2539,7 @@ function buildLandscape(seed, customConfig = null){
       const pi = Math.floor(R() * POEMS.length);
       showPoem(pi);
     }
-  }, 3.6);
+  }, 3.0);
   F(() => stampSeal(), .4);
 
   return Q;
@@ -1840,15 +2552,25 @@ function showPoem(k, customLines = null, customSeal = null, inscription = null){
   hidePoem(); poemEl.hidden = false;
   let delay = 0;
   const lines = customLines || (typeof k === 'number' ? POEMS[k] : POEMS[0]);
+  const lineCount = lines.length;
+
+  poemEl.className = 'poem';
+  if (lineCount <= 4) poemEl.classList.add('poem-short');
+  else if (lineCount <= 8) poemEl.classList.add('poem-medium');
+  else poemEl.classList.add('poem-long');
+
+  const charDelay = lineCount > 8 ? 40 : lineCount > 4 ? 65 : 110;
+  const lineGap = lineCount > 8 ? 80 : lineCount > 4 ? 130 : 200;
+
   lines.forEach((ln, li) => {
     const d = document.createElement('div'); d.className = 'ln';
     for (const ch of ln) {
       const s = document.createElement('span'); s.className = 'ch'; s.textContent = ch;
-      s.style.transitionDelay = delay + 'ms'; delay += 140;
+      s.style.transitionDelay = delay + 'ms'; delay += charDelay;
       d.appendChild(s);
     }
-    poemTimers.push(setTimeout(() => play([7, 5, 8, 4][li % 4], .5, -.5, 'pluck', true), delay - 600));
-    delay += 240; poemEl.appendChild(d);
+    poemTimers.push(setTimeout(() => play([7, 5, 8, 4][li % 4], .5, -.5, 'pluck', true), Math.max(0, delay - 200)));
+    delay += lineGap; poemEl.appendChild(d);
   });
 
   // 落款署名 (Inscription)
@@ -1857,10 +2579,10 @@ function showPoem(k, customLines = null, customSeal = null, inscription = null){
     ins.className = 'ln ln-ins';
     for (const ch of inscription) {
       const s = document.createElement('span'); s.className = 'ch'; s.textContent = ch;
-      s.style.transitionDelay = delay + 'ms'; delay += 90;
+      s.style.transitionDelay = delay + 'ms'; delay += 40;
       ins.appendChild(s);
     }
-    delay += 180;
+    delay += 100;
     poemEl.appendChild(ins);
   }
 
@@ -1888,6 +2610,7 @@ function showPoem(k, customLines = null, customSeal = null, inscription = null){
   poemEl.setAttribute('aria-label', lines.join('，') + '。');
   requestAnimationFrame(() => requestAnimationFrame(() => poemEl.classList.add('on')));
 }
+
 function stampSeal(){
   const s = poemEl.querySelector('.seal'); if (!s) return;
   s.classList.add('on'); play(0, .8, -.3, 'low', true);
@@ -2519,7 +3242,7 @@ ${prompt || '（無附加文字，請依據意象造境）'}
 modalSubmitBtn.addEventListener('click', async () => {
   ensureAudio();
   modalSubmitBtn.disabled = true;
-  modalSubmitBtn.textContent = '凝神思索中...';
+  modalSubmitBtn.textContent = '凝神思索文章意境中...';
 
   // Gather inputs
   const textInput = $('inputText').value.trim();
@@ -2536,34 +3259,31 @@ modalSubmitBtn.addEventListener('click', async () => {
     effectiveText = textInput ? (textInput + '\n' + uploadedPdfText) : uploadedPdfText;
   }
 
-  let finalConcept = null;
+  // 先進行深度文學意象分析
+  const analysis = analyzeLiteraryConcept(effectiveText);
+  let finalArchetype = (selectedStyle !== 'auto' && IMAGERY_ARCHETYPES[selectedStyle]) ? selectedStyle : analysis.archetype;
+  let finalMood = IMAGERY_ARCHETYPES[finalArchetype] ? IMAGERY_ARCHETYPES[finalArchetype].mood : analysis.mood;
+  let finalLines = analysis.poemLines;
+  let seal = SEALS[currentSealIndex];
 
   // Try Gemini if API key provided
   if (apiKey) {
     try {
       modalSubmitBtn.textContent = '神思靈犀運化中...';
       const geminiRes = await callGeminiForPoem(apiKey, effectiveText, currentActiveTab === 'image' ? uploadedImageData : null);
-      if (geminiRes && Array.isArray(geminiRes.poem) && geminiRes.poem.length === 4) {
-        const moodKey = LITERARY_RESERVOIR[geminiRes.mood] ? geminiRes.mood : 'ethereal';
-        const resDef = LITERARY_RESERVOIR[moodKey];
-        const sealChars = (Array.isArray(geminiRes.sealChars) && geminiRes.sealChars.length === 4) ? geminiRes.sealChars : resDef.seal.chars;
-        finalConcept = {
-          mood: moodKey,
-          poem: geminiRes.poem,
-          seal: { chars: sealChars, label: `印章：${sealChars.join('')}` },
-          insight: geminiRes.insight || resDef.insight,
-          badge: resDef.badge,
-          name: resDef.name
-        };
+      if (geminiRes && Array.isArray(geminiRes.poem) && geminiRes.poem.length >= 2) {
+        finalLines = geminiRes.poem;
+        if (geminiRes.mood && IMAGERY_ARCHETYPES[geminiRes.mood]) {
+          finalArchetype = geminiRes.mood;
+          finalMood = IMAGERY_ARCHETYPES[finalArchetype].mood;
+        }
+        if (Array.isArray(geminiRes.sealChars) && geminiRes.sealChars.length === 4) {
+          seal = { chars: geminiRes.sealChars, label: `印章：${geminiRes.sealChars.join('')}` };
+        }
       }
     } catch (err) {
       console.warn('Gemini 創作發生異常，切換為本機神思引擎：', err);
     }
-  }
-
-  // Fallback to built-in classical semantic engine
-  if (!finalConcept) {
-    finalConcept = inferLiteraryConcept(effectiveText, uploadedImageAnalysis, selectedStyle);
   }
 
   // Reset button and close modal
@@ -2571,19 +3291,27 @@ modalSubmitBtn.addEventListener('click', async () => {
   modalSubmitBtn.textContent = '🖌️ 意境推演並揮毫創作';
   closeArtModal();
 
-  // Show insight toast
+  const archDef = IMAGERY_ARCHETYPES[finalArchetype] || IMAGERY_ARCHETYPES.vast_river;
+
+  // 先展示深度意象分析面板
   showToast(
-    finalConcept.badge,
-    `《${finalConcept.name}》詩畫合璧`,
-    `<b>詩情畫理：</b>${finalConcept.insight}<br><b>題詠詩文：</b>${finalConcept.poem.join('，')}。`
+    `【${archDef.title}】`,
+    `意境分析與構思 · 詩畫合璧`,
+    `<b>【意象剖析】</b>${archDef.title}（${archDef.composition}；${archDef.inkStyle}）<br>` +
+    `<b>【題畫原典】</b>${finalLines.join(' / ')}<br>` +
+    `<b>【畫理推演】</b>${archDef.critique}`
   );
 
-  // Start dedicated painting
+  // 動筆揮毫
   startPainting({
-    mood: finalConcept.mood,
-    poem: finalConcept.poem,
-    seal: finalConcept.seal,
-    inscription: inscription
+    mood: finalMood,
+    archetype: finalArchetype,
+    poem: finalLines,
+    seal: seal,
+    inscription: inscription,
+    hasBoat: archDef.hasBoat,
+    hasBirds: archDef.hasBirds,
+    hasSunMoon: archDef.hasSunMoon
   });
 });
 
@@ -2899,7 +3627,7 @@ modalSubmitBtn.addEventListener('click', async () => {
     currentReadingItem = null;
   }
 
-  // 5. 核心：依此詩意境創作國畫
+  // 5. 核心：先分析文章意象，再依詩意境動筆創作國畫（原文章文字書法題跋）
   function createPaintingFromPoem(item) {
     ensureAudio();
 
@@ -2907,29 +3635,34 @@ modalSubmitBtn.addEventListener('click', async () => {
     closeReaderModal();
     closePoetryModal();
 
-    // 提煉書法詩句
-    const poemLines = extractPaintingPoem(item);
+    // 深度文學意象分析
+    const analysis = analyzeLiteraryConcept(item);
 
-    // 專屬印章
+    // 專屬名家朱砂雅印
     const seal = getAuthorSeal(item.author);
 
-    // 落款題名
-    const inscription = `${item.period}·${item.author}《${item.title}》 墨韻題`;
+    // 嚴謹題跋落款
+    const inscription = `${item.period}·${item.author}《${item.title}》 原文 墨韻繪`;
 
-    // 意境解析與提示浮動卡片
-    const moodDesc = getMoodDescription(item.mood, item.theme);
+    // 先展示意象分析與構思心得浮動面板
     showToast(
-      `【${item.theme}】`,
-      `《${item.title}》· ${item.author}`,
-      `<b>水墨畫境：</b>${moodDesc}<br><b>題畫詩文：</b>${poemLines.join('，')}。<br><b>文學賞析：</b>${(item.intro || '').slice(0, 110)}...`
+      `【${analysis.archetypeTitle}】`,
+      `《${item.title}》· ${item.author} · 文學意象解析`,
+      `<b>【意象剖析】</b>${analysis.archetypeTitle}（${analysis.composition}；${analysis.inkStyle}）<br>` +
+      `<b>【原文章題詠】</b>${analysis.poemLines.join(' / ')}<br>` +
+      `<b>【畫理意境推演】</b>${analysis.critique}`
     );
 
-    // 啟動專屬水墨繪畫流程
+    // 啟動專屬水墨繪畫流程（依分析出之專屬意象與原文章文字進行揮毫）
     startPainting({
-      mood: item.mood,
-      poem: poemLines,
+      mood: analysis.mood,
+      archetype: analysis.archetype,
+      poem: analysis.poemLines, // 原文章的真實文字！
       seal: seal,
-      inscription: inscription
+      inscription: inscription,
+      hasBoat: analysis.hasBoat,
+      hasBirds: analysis.hasBirds,
+      hasSunMoon: analysis.hasSunMoon
     });
   }
 
