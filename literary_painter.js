@@ -20,7 +20,7 @@
   };
   const LANDSCAPE = ['mountain', 'river', 'pond', 'sea', 'waves', 'desert', 'field', 'waterfall'];
 
-  function renderLiteraryPlan(ctx, plan) {
+  function renderProceduralPlan(ctx, plan) {
     const { S: emitStroke, D: emitDot, rr } = ctx;
     const opts = plan.options || {}, ids = new Set(plan.elements.map(e => e.id));
     const has = id => ids.has(id);
@@ -33,7 +33,7 @@
     const nz = (i, k = 0) => { const v = Math.sin(i * 127.1 + k * 311.7 + seed * .731) * 43758.5453; return v - Math.floor(v); };
     const sn = (i, k = 0) => nz(i, k) * 2 - 1;
     const evidenceOf = id => plan.elements.find(e => e.id === id)?.evidence || '';
-    let motif = '', emph = 1, T = null;
+    let motif = '', emph = 1, T = null, instance = '';
     const cl = v => Math.max(0, Math.min(1, v));
     // 畫面在左、題跋在右；橫直幅均使用可控的歸一化座標。
     const X = v => .025 + cl(v) * .57, Y = v => .03 + cl(v) * .91;
@@ -42,11 +42,11 @@
     const S = (pts, o = {}) => {
       if (pts.length < 2) return;
       const ink = (o.ink ?? .9) * G * (motif === 'ambient' ? 1 : emph);
-      emitStroke(pts.map(tf).map(p => [X(p[0]), Y(p[1])]), { r: .0024, water: .12, dry: .24, speed: 1.1, after: .025, ...o, r: (o.r ?? .0024) * rs(), ink, motif });
+      emitStroke(pts.map(tf).map(p => [X(p[0]), Y(p[1])]), { r: .0024, water: .12, dry: .24, speed: 1.1, after: .025, ...o, r: (o.r ?? .0024) * rs(), ink, motif, instance });
     };
     const D = (a, b, o = {}) => {
       const p = tf([a, b]), ink = (o.ink ?? .9) * G * (motif === 'ambient' ? 1 : emph);
-      emitDot(X(p[0]), Y(p[1]), { r: .004, water: .12, after: .015, ...o, r: (o.r ?? .004) * rs(), ink, motif });
+      emitDot(X(p[0]), Y(p[1]), { r: .004, water: .12, after: .015, ...o, r: (o.r ?? .004) * rs(), ink, motif, instance });
     };
     const withT = (t, fn) => { const prev = T; T = t; try { fn(); } finally { T = prev; } };
     const ellipse = (a, b, w, h, o = {}, n = 28) => { const p = []; for (let i = 0; i <= n; i++) { const t = i / n * Math.PI * 2; p.push([a + Math.cos(t) * w, b + Math.sin(t) * h]); } S(p, o); };
@@ -80,7 +80,9 @@
     const mountains = [], snowy0 = yj.sky === 'snow';
     if (has('mountain')) {
       const big = 1.15 - E * .55;
-      if (opts.multipleViews) {
+      if (opts.mountainCount===2) {
+        mountains.push({cx:.22,base:.16,h:.6,w:.22,layer:'near',shape:'peak',main:true},{cx:.76,base:.16,h:.55,w:.22,layer:'near',shape:'peak'});
+      } else if (opts.multipleViews) {
         for (let k = 0; k < 4; k++) mountains.push({ cx: .14 + k * .24, base: horizon + .02, h: [.42, .26, .5, .3][k] * big, w: .14 + (k % 2) * .05, layer: k % 2 ? 'mid' : 'near', shape: k % 2 ? 'round' : 'peak' });
       } else if (vp === 'gaoyuan') {
         const cx = sgn === 0 ? .48 : mainX;
@@ -135,7 +137,8 @@
         const runs = []; let run = null;
         for (let x = 0; x <= 1.0001; x += .01) {
           const inMoon = moonPos && Math.hypot(x - moonPos[0], y - moonPos[1]) < moonR * 1.4;
-          const ok = y > skyFloor(x) && !inMoon && !inMountain(x, y);
+          const separation=opts.staging==='celestial' && Math.abs(x-(.56+.065*Math.sin(y*4)))<.095;
+          const ok = y > skyFloor(x) && !inMoon && !inMountain(x, y) && !separation;
           if (ok) { if (run) run[1] = x; else run = [x, x]; } else if (run) { runs.push(run); run = null; }
         }
         if (run) runs.push(run);
@@ -175,7 +178,7 @@
     });
     as('sun', () => {
       const [sx, sy] = sunPos;
-      D(sx, sy, { r: .034, ink: 0, cin: 1.05, water: .15, hard: 1 });
+      for(let i=0;i<(opts.sunCount||1);i++) {instance=String(i);D(opts.sunCount?.1+(i%5)*.18:sx,opts.sunCount?.68+Math.floor(i/5)*.18:sy, { r: opts.sunCount?.018:.034, ink: 0, cin: 1.05, water: .15, hard: 1 });} instance='';
       if (opts.lightOnMoss) for (let i = 0; i < 9; i++) D(mainX + sn(i, 7) * .12, .2 + nz(i, 8) * .08, { r: .0045, ink: .05, cin: .45, water: .25 });
     });
     as('sunset', () => {
@@ -187,7 +190,7 @@
 
     /* ───────── 5. 山：遠山如黛不皴，近山皴擦點苔；山腳淡出為雲氣 ───────── */
     const tex = yj.texture || 'pima';
-    const snowy = yj.sky === 'snow';
+    const snowy = yj.sky === 'snow' || H.snowCover;
     const mistAll = yj.sky === 'mist' || yj.weather === 'mist' || has('cloud') || vp === 'shenyuan';
     /* 山石筆墨（參照原版墨韻）：稜線重筆 → 由峰頂下垂的褶皺 → 依坡向的皴擦 → 沿稜線向下層層淡墨渲染 → 點苔。
        f 為山形函數，回傳高度（<0 表示不在此山範圍）；同一套筆法用於主山、遠山與近岸坡石。 */
@@ -272,7 +275,7 @@
     });
     const waterId = ['river', 'pond', 'sea', 'waves'].find(has);
     const water = () => {
-      const rough = has('waves') && !H.calm, darkWater = snowy || night;
+      const rough = motif==='waves' && !H.calm, darkWater = snowy || night;
       // 寒江與夜江：水面淡墨烘染，比雪地／月光暗，月影處留白
       if (darkWater) for (let y = horizon - .012; y > shoreY; y -= .026) {
         const segs = moonPos && hasWater ? [[0, moonPos[0] - .03], [moonPos[0] + .03, 1]] : [[0, 1]];
@@ -292,6 +295,11 @@
       if (intimate) for (let i = 0; i < 4; i++) S([[cl(openX - .18 + i * .04), shoreY + .02 + i * .028], [cl(openX + .1 + i * .03), shoreY + .024 + i * .028]], { r: .0012, ink: .28, dry: .4 });
     };
     if (waterId) as(waterId, water);
+    for(const id of ['pond','sea','waves'])if(id!==waterId)as(id,()=>{
+      if(id==='pond')ellipse(mainX,shoreY+.09,.22,.09,{r:.0016,ink:.45});
+      else if(id==='sea')for(let i=0;i<5;i++)S([[.04,.4+i*.02],[.96,.4+i*.02]],{r:.0014,ink:.25});
+      else for(let i=0;i<8;i++){const x=.12+i*.1,y=shoreY+.04+(i%3)*.036;S([[x-.035,y],[x-.01,y+.025],[x+.02,y+.032],[x+.034,y+.012],[x+.012,y+.008]],{r:.0025,ink:.75,dry:.6});}
+    });
     as('field', () => {
       const y0 = shoreY + .02, y1 = Math.min(horizon, .34);
       for (let i = 0; i < 6; i++) { const yy = y0 + (y1 - y0) * i / 6; S([[mainX - .3, yy], [mainX + .32, yy + .012]], { r: .0015, ink: .45 - i * .04, dry: .4 }); }
@@ -422,6 +430,7 @@
       });
     });
     as('pavilion', () => {
+      if(opts.ruined){for(let i=0;i<5;i++){const x=.18+i*.12;S([[x,.14],[x+.035,.22],[x+.09,.18]],{r:.003,dry:.7});}S([[.29,.18],[.29,.48],[.4,.43]],{r:.003,dry:.65});return;}
       const a = cl(mainX + .05 * dirOpen), b = mountains.length ? Math.max(midY, prof(mountains.find(m => m.main) || mountains[0], a) - .05) : midY;
       withT({ ox: .23, oy: .4, cx: a, cy: b, s: .8 }, () => {
         for (let level = 0; level < 2; level++) { const yy = .4 + level * .12, ww = .13 - level * .035; S([[.23 - ww, yy + .12], [.23 - ww * .5, yy + .1], [.23, yy + .13], [.23 + ww * .5, yy + .1], [.23 + ww, yy + .12]], { r: .003 }); S([[.23 - ww * .6, yy + .1], [.23 - ww * .6, yy], [.23 + ww * .6, yy], [.23 + ww * .6, yy + .1]], { r: .002 }); }
@@ -431,7 +440,12 @@
       const a = cl(mainX + .2 * dirOpen), b = hasWater ? Math.max(shoreY + .06, horizon - .1) : shoreY + .05;
       withT({ ox: .535, oy: .29, cx: a, cy: b, s: .55 }, () => { S([[.3, .25], [.4, .31], [.54, .34], [.68, .3], [.77, .24]], { r: .003 }); S([[.3, .23], [.44, .28], [.62, .28], [.77, .22]], { r: .002 }); S([[.42, .3], [.42, .33]], { r: .0015 }); S([[.62, .3], [.62, .33]], { r: .0015 }); });
     });
-    as('wall', () => { const a = mainX; S([[a - .1 * dirOpen, shoreY], [a - .1 * dirOpen, .62], [a + .2 * dirOpen, .62]], { r: .0025, ink: .55, dry: .4 }); S([[a - .1 * dirOpen, shoreY], [a + .25 * dirOpen, shoreY]], { r: .002, ink: .4, dry: .5 }); });
+    as('wall', () => {
+      const a=mainX;
+      if(opts.ruined){S([[.13,shoreY],[.16,.38],[.23,.31],[.28,.35],[.3,.2],[.4,.27],[.51,.19],[.6,.3],[.68,.26],[.7,shoreY]],{r:.003,ink:.7,dry:.75});return;}
+      S([[a-.1*dirOpen,shoreY],[a-.1*dirOpen,.62],[a+.2*dirOpen,.62]],{r:.0025,ink:.55,dry:.4});S([[a-.1*dirOpen,shoreY],[a+.25*dirOpen,shoreY]],{r:.002,ink:.4,dry:.5});
+      if(opts.borrowedLight){S([[a+.03,.32],[a+.03,.37],[a+.08,.37],[a+.08,.32],[a+.03,.32]],{r:.002,ink:.7});}
+    });
 
     /* 近景樹木：依主景側排列，前大後小 */
     const treeKinds = [['bare_tree', 'bare'], ['pine', 'pine'], ['willow', 'willow'], ['tree', 'tree']];
@@ -534,7 +548,7 @@
       const y = hasWater ? shoreY + (horizon - shoreY) * (yj.solitary ? .42 : .32) : shoreY + .04;
       return [cl(openX - .04 * dirOpen), y, fig * (intimate ? .8 : 1)];
     })();
-    const onBoat = has('boat') && has('person') && !opts.miniature && !(plan.elements.find(e => e.id === 'person')?.evidence || '').match(/岸|籬|田/) && opts.personAction !== 'walk' && opts.personAction !== 'farm';
+    const onBoat = has('boat') && has('person') && opts.onBoat!==false && !opts.emptyBoat && !opts.miniature && !(plan.elements.find(e => e.id === 'person')?.evidence || '').match(/岸|籬|田/) && opts.personAction !== 'walk' && opts.personAction !== 'farm';
     as('boat', () => {
       const [a, b, s] = boatPos, ev = evidenceOf('boat');
       const canopy = (night || yj.weather === 'rain' || yj.weather === 'snow') && !/帆/.test(ev);
@@ -553,6 +567,14 @@
     as('goose', () => withT({ ox: .52, oy: .24, cx: openX, cy: shoreY + .06, s: intimate ? 1.6 : 1 }, () => { ellipse(.52, .24, .08, .025, { r: .0023, ink: .45 }); S([[.56, .255], [.59, .31], [.57, .34], [.61, .34]], { r: .0024, ink: .7 }); S([[.49, .215], [.46, .202], [.53, .209]], { r: .002, ink: 0, cin: .8 }); for (let i = 0; i < 4; i++) S([[.42, .21 - i * .01], [.6, .212 - i * .01]], { r: .0011, ink: .2 }); }));
     as('bird', () => {
       const n = opts.birdCount || (yj.solitary ? 1 : 3);
+      if(opts.birdAction){
+        const a=.5,b=.32;ellipse(a,b,.055,.035,{r:.0021});
+        S([[a+.04,b+.015],[a+.063,b+.09],[a+.08,b+.095]],{r:.002});
+        S([[a+.078,b+.097],[a+(opts.birdAction==='clam'?.18:.11),b+.09],[a+.08,b+.085]],{r:.0014});
+        D(a+.075,b+.1,{r:.0028,ink:1.1});
+        for(const x of [a-.012,a+.017])S([[x,b-.026],[x+.006,b-.085],[x+.024,b-.085]],{r:.0011});
+        S([[a-.04,b+.01],[a-.083,b+(opts.birdAction==='falcon'?-.035:.07)],[a-.043,b-.01]],{r:.0018});return;
+      }
       if (opts.rooster) { withT({ ox: .48, oy: .32, cx: mainX, cy: .3, s: 1.5 }, () => { ellipse(.48, .32, .07, .045, { r: .003 }); S([[.53, .34], [.56, .43], [.59, .44]], { r: .0028 }); D(.56, .45, { r: .006, cin: 1, ink: 0 }); for (let j = 0; j < 4; j++) S([[.43, .34], [.3 + j * .018, .43 + j * .014]], { r: .002 }); S([[.46, .28], [.46, .2], [.43, .19]], { r: .0018 }); }); return; }
       if (opts.waterBirds) { for (let i = 0; i < n; i++) { const a = openX + dirOpen * i * .06, b = shoreY + .05 + i * .01; ellipse(a, b, .022, .008, { r: .0019 }, 16); S([[a + .018, b], [a + .03, b + .026], [a + .042, b + .025]], { r: .0018 }); } return; }
       const crowsOnTree = (H.crows || has('bare_tree')) && perches.length;
@@ -571,10 +593,14 @@
     /* ───────── 12. 點景人物與鞍馬 ───────── */
     let figAnchor = null;
     const figure = (a, b, s, action, face) => {
+      if(opts.staging && root.MoyunObjects?.drawPerson){
+        const placed=opts.layout?.['person:'+instance],cx=placed ? .44 : a,cy=placed ? .16 : b,w=placed ? .28 : .06*s,h=placed ? .36 : .09*s;
+        root.MoyunObjects.drawPerson({S:(p,o)=>S(p.map(([x,y])=>[cx+(x-.5)*w,cy+y*h]),o),D:(x,y,o)=>D(cx+(x-.5)*w,cy+y*h,o)},action,opts);return;
+      }
       // 點景人物：實墨衣袍剪影，頭、肩、袖、衣擺分明，小尺度仍可辨識
       const h = .07 * s, f = face || 1, x = v => a + v * s * f;
       const hat = H.hat || (action === 'fish' && (yj.weather === 'snow' || yj.weather === 'rain'));
-      const seated = action === 'qin' || action === 'pipa' || (action === 'fish' && onBoat);
+      const seated = ['qin','pipa','sit','study','write','sew','listen','beg','mourn'].includes(action) || (action === 'fish' && onBoat);
       const bend = action === 'pick_flower' || action === 'farm' || action === 'work' ? .012 : 0;
       const bh = seated ? h * .6 : h, sh = b + bh * .8;
       const up = H.lookUp || action === 'look_moon';
@@ -587,7 +613,19 @@
       S([[x(-.021), b], [x(.019), b]], { r: .0022 * s, ink: .9 });
       // 袖與手勢
       if (up) S([[x(.006), sh - .004], [x(.02), sh + h * .1], [x(.016), sh + h * .16]], { r: .0018 * s, ink: .95 });
-      else S([[x(.006), sh - .002], [x(.022), sh - bh * .28], [x(.016), sh - bh * .4]], { r: .0026 * s, ink: .95 });
+      else {
+        const arms={refuse:[[.008,-.1],[.04,.08],[.04,.25]],stop:[[.008,0],[.035,.13],[.035,.28]],
+          reach:[[.008,-.1],[.04,-.12],[.065,-.12]],protect:[[.008,-.1],[.04,-.2],[.073,-.43]],care:[[.008,-.1],[.055,-.24],[.024,-.43]],
+          write:[[.008,-.1],[.032,-.22],[.057,-.3]],study:[[.008,-.1],[.035,-.25],[.055,-.24]],sew:[[.008,-.1],[.04,-.28],[.06,-.23]],
+          present:[[.008,-.1],[.044,-.22],[.065,-.18]],serve:[[.008,-.1],[.044,-.25],[.065,-.24]],help:[[.008,-.1],[.045,-.18],[.065,-.26]],
+          comfort:[[.008,-.1],[.045,0],[.065,-.08]],hold_back:[[.008,-.1],[.045,-.1],[.065,-.06]],archer:[[.008,0],[.044,0],[.064,0]],
+          point:[[.008,0],[.045,.13],[.065,.26]],strike:[[.008,0],[.025,.28],[.065,.35]],inspect:[[.008,-.1],[.045,-.4],[.065,-.62]],
+          show_hands:[[.008,-.1],[.04,-.16],[.065,0]],hold_chest:[[.008,-.1],[.036,-.18],[.0,-.12]],
+          mirror:[[.008,-.1],[.035,0],[.05,.13]],touch:[[.008,-.1],[.04,-.12],[.065,-.25]],pour:[[.008,-.1],[.044,-.12],[.06,-.22]]};
+        const gesture=arms[action]||[[.006,-.04],[.022,-.28],[.016,-.4]];
+        S(gesture.map(([dx,dy])=>[x(dx),sh+bh*dy]),{r:.0023*s,ink:.95});
+        if(['protect','care','archer','sew','hold_back','show_hands'].includes(action))S([[x(-.009),sh],[x(.026),sh-bh*.3],[x(.06),sh-bh*.32]],{r:.002*s});
+      }
       if (seated) S([[x(-.016), b + .003], [x(.04), b + .006]], { r: .0034 * s, ink: .9 });
       if (action === 'walk') S([[x(.024), sh - bh * .1], [x(.042), b - .006]], { r: .0013 * s, ink: .9 });
       if (action === 'fish') { S([[x(.016), sh - bh * .3], [x(.09), sh + h * .35], [x(.16), sh + h * .45]], { r: .001 * s, ink: .85 }); S([[x(.16), sh + h * .45], [x(.163), b - .03 * s]], { r: .0006 * s, ink: .45 }); }
@@ -595,6 +633,7 @@
       if (action === 'pick_flower') S([[x(.016), sh - bh * .35], [x(.04), b + bh * .2]], { r: .0018 * s });
     };
     as('horse', () => {
+      for(let i=0;i<(opts.horseCount||1);i++){instance=String(i);
       const onPath = has('path') && !intimate, pp = pathPts[1], pq = pathPts[2];
       const a = onPath ? pp[0] + (pq[0] - pp[0]) * .28 : cl(mainX + .14 * dirOpen), b = onPath ? pp[1] + (pq[1] - pp[1]) * .28 : shoreY + .04, s = fig * (intimate ? 1.2 : onPath ? .8 : 1), f = dirOpen;
       withT({ ox: 0, oy: 0, cx: a, cy: b, s }, () => {
@@ -605,10 +644,12 @@
         for (const dx of [-.042, -.03, .03, .042]) S([[x(dx), .045], [x(dx + .004), .02], [x(dx), 0]], { r: .0016, ink: .9, dry: .4 });
         S([[x(-.05), .06], [x(-.068), .04], [x(-.062), .02]], { r: .0018, ink: .8, dry: .6 });
       });
+      }instance='';
     });
     as('person', () => {
       const n = opts.personCount || 1, action = opts.personAction;
       for (let i = 0; i < n; i++) {
+        instance=String(i);
         let a, b, s = fig, face = sgn === 0 ? 1 : dirOpen;
         if (opts.miniature) { a = .42 + i * .04; b = .27; s = .55; }
         else if (onBoat && i < 2) { a = boatPos[0] + (i ? -.03 : .01) * boatPos[2]; b = boatPos[1] + .006 * boatPos[2]; s = boatPos[2] * .85; }
@@ -620,9 +661,11 @@
         else if (has('horse')) { a = cl(mainX + dirOpen * (.22 + i * .05)); b = shoreY + .04; }
         else { a = cl((nearSlots[0] ?? mainX) + dirOpen * (.1 + i * .06)); b = shoreY + .01; if (i === 0 && !nearSlots.length && !intimate) bank(a, b + .002, .07); }
         if (n > 1 && !onBoat && !opts.distantPerson && i % 2) face = -face;
-        figure(a, b, s, i === 0 || n <= 2 ? action : (action === 'farm' ? 'farm' : ''), face);
+        const response={refuse:'present',protect:'reach',care:'',help:'',comfort:'mourn',hold_back:'walk',listen:'present'};
+        figure(a, b, s, i===0?action:(action in response?response[action]:action==='farm'?'farm':''), opts.staging?1:face);
         if (i === 0) figAnchor = [a, b, s, face];
       }
+      instance='';
     });
     as('butterfly', () => S([[mainX + .1, .5], [mainX + .07, .54], [mainX + .11, .56], [mainX + .13, .52], [mainX + .17, .56], [mainX + .2, .53], [mainX + .14, .5]], { r: .002 }));
     as('dragonfly', () => { const a = lotusTop ? lotusTop[0] : openX, b = lotusTop ? lotusTop[1] + .012 : shoreY + .235; S([[a, b - .012], [a, b + .015]], { r: .0013 }); S([[a - .036, b + .003], [a, b], [a + .036, b + .005]], { r: .0012 }); S([[a - .027, b - .006], [a, b], [a + .03, b - .006]], { r: .001 }); });
@@ -637,11 +680,16 @@
     as('book', () => withT({ ox: .53, oy: .26, cx: objX, cy: objY, s: oS }, () => { S([[.46, .24], [.58, .24], [.6, .28], [.48, .28], [.46, .24]], { r: .002 }); for (let i = 0; i < 5; i++) S([[.48 + i * .02, .245], [.49 + i * .02, .275]], { r: .0008 }); }));
     as('lamp', () => {
       const n = opts.lanterns ? 8 : 1;
-      for (let i = 0; i < n; i++) { const a = opts.lanterns ? .1 + i * .11 : objX + .06 * dirOpen, b = opts.lanterns ? .6 + (i % 2) * .07 : objY; S([[a - .02, b], [a + .02, b], [a, b + .018], [a, b + .062]], { r: .0017 }); D(a, b + .064, { r: .012, ink: 0, cin: .25, water: .55 }); D(a, b + .064, { r: .0035, ink: 0, cin: .9 }); }
+      for (let i = 0; i < n; i++) { const a = opts.lanterns ? .1 + i * .11 : objX + .06 * dirOpen, b = opts.lanterns ? .6 + (i % 2) * .07 : objY; S([[a - .02, b], [a + .02, b], [a, b + .018], [a, b + .062]], { r: .0017 }); if(!opts.unlitLamp){D(a, b + .064, { r: .012, ink: 0, cin: .25, water: .55 }); D(a, b + .064, { r: .0035, ink: 0, cin: .9 });} }
     });
     as('sword', () => { const a = objX - .06, b = opts.swordUnderwater ? shoreY + .02 : objY + .06; S([[a, b], [a + .15, b + .065], [a + .16, b + .07], [a + .15, b + .05], [a, b - .007], [a, b]], { r: .0015, ink: .85 }); S([[a - .01, b + .015], [a + .005, b - .02]], { r: .002 }); });
     as('chess', () => withT({ ox: .55, oy: .235, cx: objX, cy: objY + .03, s: oS }, () => { S([[.42, .18], [.66, .18], [.68, .29], [.44, .29], [.42, .18]], { r: .0017 }); for (let i = 1; i < 6; i++) { S([[.42 + i * .04, .18], [.44 + i * .04, .29]], { r: .0008, ink: .3 }); S([[.42, .18 + i * .018], [.67, .18 + i * .018]], { r: .0008, ink: .3 }); } for (let i = 0; i < 8; i++) D(.46 + (i % 4) * .04, .22 + Math.floor(i / 4) * .034, { r: .002, ink: i % 2 ? .25 : 1 }); }));
     as('smoke', () => { const a = cl(openX + .05 * dirOpen); S([[a, horizon], [a + .003, horizon + .12], [a - .002, horizon + .26], [a + .002, horizon + .4]], { r: .0026, ink: .45, water: .35, fade: .6 }); });
+
+    // 新物象使用自身圖元，仍逐筆標記，經專篇位置安排後送入同一墨色系統。
+    for(const id of ids)if(root.MoyunObjects?.MOTIFS[id])as(id,()=>root.MoyunObjects.draw(id,{
+      S:(p,o)=>S(p.map(([x,y])=>[.3+x*.35,.15+y*.35]),o),D:(x,y,o)=>D(.3+x*.35,.15+y*.35,o)
+    },opts));
 
     /* ───────── 14. 天候最後落筆 ───────── */
     as('rain', () => {
@@ -650,6 +698,36 @@
       for (let k = 0; k < 2; k++) S([[0, horizon + .04 + k * .12], [1, horizon + .05 + k * .12]], { r: .03, ink: .035, water: .9, dry: 0, speed: 3 });
     });
     as('snow', () => { if (!(yj.sky === 'snow')) for (let i = 0; i < 18; i++) D(nz(i, 95), .2 + nz(i, 96) * .7, { r: .0018, ink: .12, water: .25 }); });
+  }
+
+  function renderLiteraryPlan(ctx,plan){
+    const marks=[],groups=new Map(),layout=plan.options?.layout||{};
+    let seed=parseInt(plan.seed||'1234',16)>>>0;
+    const rr=(a,b)=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return a+(b-a)*seed/4294967296;};
+    const collect=(p,o,dot)=>{
+      const key=o.motif+(o.instance!==''&&o.instance!==undefined?':'+o.instance:'');
+      const box=layout[key]||layout[o.motif];
+      const points=p.map(([x,y])=>[(x-.025)/.57,(y-.03)/.91]);
+      if(box?.rotate)for(const pt of points){const x=pt[0],y=pt[1];pt[0]=x*Math.cos(box.rotate)-y*Math.sin(box.rotate);pt[1]=x*Math.sin(box.rotate)+y*Math.cos(box.rotate);}
+      const g=groups.get(key)||{minX:Infinity,minY:Infinity,maxX:-Infinity,maxY:-Infinity,box};
+      for(const [x,y] of points){g.minX=Math.min(g.minX,x);g.maxX=Math.max(g.maxX,x);g.minY=Math.min(g.minY,y);g.maxY=Math.max(g.maxY,y);}
+      groups.set(key,g);marks.push({p,points,o,dot,key});
+    };
+    renderProceduralPlan({...ctx,rr,S:(p,o)=>collect(p,o,false),D:(x,y,o)=>collect([[x,y]],o,true)},plan);
+    for(const m of marks){const g=groups.get(m.key),b=g.box;let p=m.p,o=m.o;
+      if(b){const w=Math.max(.018,g.maxX-g.minX),h=Math.max(.018,g.maxY-g.minY),axis=.57*(ctx.aspect||1)/.91,s=Math.min(b.w*axis/w,b.h/h),cx=(g.minX+g.maxX)/2,cy=(g.minY+g.maxY)/2;
+        p=m.points.map(([x,y])=>[.025+.57*(b.x+b.w/2+(x-cx)*s/axis*(b.flip?-1:1)),.03+.91*(b.y+b.h/2+(y-cy)*s)]);
+        o={...o,r:o.r*Math.min(3,Math.max(.3,s))};
+        // 縮到手機時仍保留人物線條，避免低於墨層解析度而只剩淡影。
+        if(o.motif==='person')o={...o,r:Math.max(.0011,o.r),ink:o.ink*1.15,water:Math.min(.06,o.water)};
+      }
+      if(m.dot)ctx.D(p[0][0],p[0][1],o);else ctx.S(p,o);
+      if(plan.options?.reflection && o.motif==='mountain'){
+        const reflection=p.map(([x,y])=>[x,.03+.91*.35-(y-(.03+.91*.38))*.5]);
+        const faint={...o,ink:o.ink*.16,r:o.r*.65,water:.7,dry:.1,instance:'reflection'};
+        if(m.dot)ctx.D(reflection[0][0],reflection[0][1],faint);else ctx.S(reflection,faint);
+      }
+    }
   }
 
   root.renderLiteraryPlan = renderLiteraryPlan;

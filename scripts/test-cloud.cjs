@@ -1,8 +1,9 @@
 'use strict';
 /* 雲端 AI 轉接測試：以模擬 fetch 檢查三家請求格式、結構化綱要、錯誤說明與原文回查。不需真實金鑰、不連網。 */
 const assert = require('node:assert/strict');
-require('../classical_data.js'); require('../literary_profiles.js'); require('../literary_yijing.js');
+require('../classical_data.js'); require('../literary_profiles.js'); require('../literary_objects.js'); require('../literary_yijing.js');
 const engine = require('../literary_engine.js');
+require('../literary_catalog.js');
 const C = require('../literary_cloud.js');
 
 // 模擬 localStorage 與 fetch

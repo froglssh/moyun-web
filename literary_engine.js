@@ -21,6 +21,7 @@
     wall: ['牆垣', /牆|垣/], sword: ['劍影', /劍|刀/], chess: ['棋局', /弈|棋/],
     stone: ['石塊', /石|玉|石灰/], broken_pot: ['碎盆', /毀其盆/], fence: ['籬落', /籬/]
   };
+  const GENERIC_IDS=Object.keys(MOTIFS);
   const normalize = s => String(s || '').replace(/[\s，。！？；、︰：「」『』《》（）()・·‧,.;:!?]/gu, '');
   const sourceText = item => (typeof item === 'string' ? item : (item.lines || []).join('\n')).replace(/\r/g, '');
   const keyOf = item => `${item.author || ''}|${item.title || ''}`;
@@ -90,7 +91,7 @@
         note: '本篇以論述為主，採原文題跋與留白，不把論證、典故或比喻當成現場景物。' };
     }
     const candidates = segs.map((s, i) => {
-      const ids = Object.keys(MOTIFS).filter(id => !ex.absent.has(id) && MOTIFS[id][1].test(s) && !isAbsent(s,id));
+      const ids = GENERIC_IDS.filter(id => !ex.absent.has(id) && MOTIFS[id][1].test(s) && !isAbsent(s,id));
       return { s, i, ids, score: ids.filter(id => !['person','path','tree','book'].includes(id)).length };
     });
     const focal = candidates.reduce((best, c) => c.score > best.score ? c : best, { score: -1, i: 0 });
@@ -101,7 +102,7 @@
       focus = paras.find(p => p.includes(segs[focal.i])) || segs[focal.i] || '';
       if (focus.length > 280) focus = segs.slice(Math.max(0, focal.i-1), focal.i+2).join('，');
     } else focus = segs.length <= 12 ? segs.join('，') : segs.slice(Math.max(0, focal.i-1), focal.i+3).join('，');
-    let motifs = Object.keys(MOTIFS).filter(id => !ex.absent.has(id) && evidenceFor(focus,id) && !isAbsent(evidenceFor(focus,id),id));
+    let motifs = GENERIC_IDS.filter(id => !ex.absent.has(id) && evidenceFor(focus,id) && !isAbsent(evidenceFor(focus,id),id));
     // 保守處理不確定語句；具名植物優先於泛稱花草、樹林。
     if (motifs.some(id => ['pine','bamboo','willow','plum','bare_tree'].includes(id))) motifs = motifs.filter(id => id !== 'tree');
     if (motifs.some(id => ['plum','lotus','peach','chrysanthemum'].includes(id))) motifs = motifs.filter(id => id !== 'flower');
@@ -139,7 +140,12 @@
     return {lines:clauses(source),mode:'節錄',source};
   }
 
-  function getProfile(item) { return (root.LITERARY_WORK_PROFILES || {})[keyOf(item)] || null; }
+  Object.assign(MOTIFS, root.MoyunObjects?.MOTIFS || {});
+  function fingerprint(text) { let h=2166136261; for(const c of text){h^=c.codePointAt(0);h=Math.imul(h,16777619);} return (h>>>0).toString(16); }
+  function getProfile(item) {
+    const p=(root.LITERARY_WORK_PROFILES || {})[keyOf(item)];
+    return p && (!p.sourceFingerprint || p.sourceFingerprint===fingerprint(sourceText(item))) ? p : null;
+  }
   function analyzeLiteraryConcept(input, optionalTitle = '', optionalAuthor = '', optionalPeriod = '', sceneIndex = 0) {
     let item = typeof input === 'object' && input ? input : { title: optionalTitle || '所錄文字', author: optionalAuthor || '', period: optionalPeriod || '', form: '', lines: [String(input || '')] };
     // 輸入原詩或全篇時回到典庫專篇釋義，而非再猜一次關鍵字。
@@ -156,7 +162,7 @@
     const elements = (def.motifs || []).map(spec => {
       const id = typeof spec === 'string' ? spec : spec.id;
       let evidence = typeof spec === 'object' ? spec.evidence : evidenceFor(focus,id);
-      let evidenceKind = '原文明示';
+      let evidenceKind = typeof spec==='object' && spec.evidenceKind || '原文明示';
       if (!evidence && profile) evidence = evidenceFor(text,id);
       if (!evidence && profile && evidenceFor(item.title,id)) { evidence = item.title; evidenceKind = '篇名與專篇釋義'; }
       // 專篇核定的隱含物象，例如釣者、荷塘：清楚區分直接用字與語義推定。
@@ -172,11 +178,11 @@
     const mood = profile?.mood || moodFor(focus, meaning);
     const scenePlan = { label: def.label, focus, representation: def.representation || 'literal', elements: validElements,
       options: def.options || {}, constraints: [...(profile?.constraints || []), ...(def.constraints || []), ...ex.notes.map(note=>ex.absent.has('person') && validElements.some(e=>e.id==='person') && note.includes('可聞聲') ? '無人或人踪滅限於原文的作用範圍；本段明寫的釣翁或人物仍保留' : note)],
-      note: def.note || '', sceneIndex: idx };
+      note: def.note || '', words: def.words || [], seed: fingerprint(text+idx), sceneIndex: idx };
     // 意境層：情感、時令、三遠、留白與筆墨；只影響構圖與墨色，不新增物象。
     const Y = root.MoyunYijing;
-    scenePlan.yijing = Y ? Y.analyzeYijing(item, { focus, meaning, elements: validElements, sceneIndex: idx }) : null;
-    const confidence = profile ? '專篇釋義' : '保守文本取景';
+    scenePlan.yijing = Y ? Y.analyzeYijing(item, { focus, meaning, elements: validElements, sceneIndex: idx, override: def.yijing }) : null;
+    const confidence = profile?.sourceFingerprint ? '逐篇內建畫意' : profile ? '專篇釋義' : '保守文本取景';
     return { title: item.title, author: item.author || '', period: item.period || '', sourceUrl: item.url || '',
       archetype: 'literary_scene', archetypeTitle: def.label, mood, composition: def.composition || '依原文主次配置，題跋與畫面分區留白',
       inkStyle: mood === 'heroic' ? '濃淡積墨，以力度呈現文本情緒' : '疏密濃淡依文本情緒，留白保留餘意',
@@ -213,7 +219,7 @@
     if (!focus) { focus = analysis.scenePlan.focus; if (value.focus) notes.push('雲端所選段落與原文不完全相符，取景段落改用本機判讀'); }
     const representation = ['literal','symbolic','calligraphy'].includes(value.representation) ? value.representation : analysis.scenePlan.representation;
     const note = typeof value.note === 'string' ? value.note.trim().slice(0, 600) : '';
-    const profile=getProfile(input) || (root.LITERARY_WORK_PROFILES || {})[analysis.author+'|'+analysis.title];
+    const profile=getProfile(input) || (analysis.confidence==='逐篇內建畫意' && (root.LITERARY_WORK_PROFILES || {})[analysis.author+'|'+analysis.title]);
     const blocked = new Set((profile?.scenes?.[analysis.scenePlan.sceneIndex]?.exclude || []));
     const ex = exclusions(text), nFocus = normalize(focus), shortText = nText.length <= 160;
     const elements = [], dropped = [], seen = new Set();

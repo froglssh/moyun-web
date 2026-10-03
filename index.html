@@ -448,8 +448,10 @@
 <!-- 中國古詩文精讀資料庫 (543 篇名篇) -->
 <script src="classical_data.js"></script>
 <script src="literary_profiles.js"></script>
+<script src="literary_objects.js"></script>
 <script src="literary_yijing.js"></script>
 <script src="literary_engine.js"></script>
+<script src="literary_catalog.js"></script>
 <script src="literary_painter.js"></script>
 <script src="literary_cloud.js"></script>
 <script>if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
@@ -791,7 +793,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
 .poem .ln.ln-ins { font-size:var(--ins-fs,11px); letter-spacing:.02em; line-height:1.25; }
 .poem .verse-gap { font-size:.5em; }
 .poem .seal { flex-shrink:0; align-self:flex-end; width:var(--seal-size,30px); height:var(--seal-size,30px); font-size:calc(var(--seal-size,30px) * .4); padding:calc(var(--seal-size,30px) * .1); }
-.inscription-nav {position:fixed;right:18px;bottom:128px;z-index:6;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);background:var(--veil);padding:6px;border:1px solid var(--line);border-radius:4px;}
+.inscription-nav {position:fixed;right:18px;bottom:max(128px,var(--controls-bottom,128px));z-index:6;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);background:var(--veil);padding:6px;border:1px solid var(--line);border-radius:4px;}
 .inscription-nav[hidden] {display:none;}
 .inscription-nav button {font:inherit;background:var(--paper);border:1px solid var(--line);padding:4px 7px;color:var(--ink);cursor:pointer;}
 .insight-toast {box-sizing:border-box;max-height:46vh;overflow:auto;}
@@ -835,7 +837,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
 .yijing-text {font-size:16.5px;line-height:1.85;color:var(--ink-soft);margin:6px 0 0;overflow-wrap:anywhere;}
 .yijing-text b {color:var(--ink);}
 #readerInscription {white-space:pre-wrap;overflow-wrap:anywhere;}
-@media(max-width:640px) {.poem{top:66px;right:12px;width:35vw;}.inscription-nav{right:12px;bottom:138px;font-size:11px;}}
+@media(max-width:640px) {.poem{top:66px;right:12px;width:35vw;}.inscription-nav{right:12px;bottom:max(138px,var(--controls-bottom,138px));font-size:11px;}}
 
 @media (prefers-reduced-motion: reduce){.poem .ch,.seal{transition-duration:.01s}}
 </style>
@@ -898,7 +900,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
 <div class="modal-overlay" id="poetryModal" role="dialog" aria-modal="true" aria-labelledby="poetryModalTitle">
   <div class="modal-card poetry-modal-card">
     <div class="modal-header">
-      <h2 id="poetryModalTitle">中國古詩文庫 · 經典題畫 <span class="badge">540+ 名篇全收錄</span></h2>
+      <h2 id="poetryModalTitle">中國古詩文庫 · 經典題畫 <span class="badge">543 篇專屬畫意</span></h2>
       <button class="modal-close" id="poetryModalCloseBtn" aria-label="關閉視窗">✕</button>
     </div>
     <div class="modal-body poetry-modal-body">
@@ -1020,6 +1022,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
         <select id="readerSceneSelect" class="option-input"></select>
         <p id="readerMeaning" class="reader-intro-text"></p>
         <p id="readerPlanNote" class="reader-intro-text"></p>
+        <ul id="readerWords" class="reader-evidence" aria-label="語詞釋義與畫面安排"></ul>
         <div id="readerYijing" class="yijing-box" aria-label="意境解析"></div>
         <ul id="readerEvidence" class="reader-evidence"></ul>
         <p id="readerConstraints" class="reader-intro-text"></p>
@@ -1595,6 +1598,14 @@ function clearDye(){
   const u = P.clear.use(); gl.uniform1f(u.value, 0);
   gl.uniform1i(u.uTexture, dye.read.bind(0)); blit(dye.write); dye.swap();
 }
+function resetPaintingFlow(){
+  // 洗紙的攪流不得帶入下一幅，否則精確人物與器物會被殘餘速度拉歪。
+  velQ.length=0;dyeQ.length=0;
+  const u=P.clear.use();gl.uniform1f(u.value,0);
+  for(const field of [velocity,pressure])for(let i=0;i<2;i++){
+    gl.uniform1i(u.uTexture,field.read.bind(0));blit(field.write);field.swap();
+  }
+}
 
 /* ───────── sound: Karplus–Strong guqin ───────── */
 const FREQ = [146.83,164.81,185.00,220.00,246.94,293.66,329.63,369.99,440.00,493.88,587.33,659.26];
@@ -1806,7 +1817,7 @@ function buildLandscape(seed,customConfig) {
   const Q=[];
   const S=(pts,o)=>Q.push(Object.assign({pts:pts.map(p=>[p[0],M(p[1])]),speed:1,r:.005,ink:1,cin:0,water:.3,dry:0,dryGrow:0,fade:0,hard:0,seed:rr(0,900),force:0,after:.08,note:.09,vel:.45,kind:'pluck'},o));
   const D=(x,y,o)=>Q.push(Object.assign({dot:true,x,y:M(y),r:.005,ink:1,cin:0,water:.4,hard:0,after:.03},o));
-  window.renderLiteraryPlan({S,D,rr,mood:cfg.mood},cfg.scenePlan);
+  window.renderLiteraryPlan({S,D,rr,mood:cfg.mood,aspect:aspect()},cfg.scenePlan);
   Q.push({fn:()=>showPoem(0,cfg.poem,cfg.seal,cfg.inscription),after:3});
   Q.push({fn:()=>stampSeal(),after:.4});
   return Q;
@@ -1910,6 +1921,7 @@ function startPainting(customCfg = null){
     showAnalysisToast(analysis);
   }
   const go = () => {
+    resetPaintingFlow();
     hideAnalysisNote();
     ghost.q = buildLandscape(seedCounter++, currentCustomConfig);
     ghost.cur = null; ghost.wait = .2; ghost.on = true;
@@ -2097,6 +2109,11 @@ canvas.addEventListener('pointermove', e => {
 
 /* ───────── loop ───────── */
 const readout = $('readout'), corner = $('corner');
+// 控制列隨手機寬度換行，題跋翻頁列跟隨其實際高度避讓。
+const paintingBar=document.querySelector('.bar');
+const placeInscriptionNav=()=>document.documentElement.style.setProperty('--controls-bottom',(innerHeight-paintingBar.getBoundingClientRect().top+10)+'px');
+new ResizeObserver(placeInscriptionNav).observe(paintingBar);
+addEventListener('resize',placeInscriptionNav);placeInscriptionNav();
 let last = performance.now(), fps = 60, tick = 0;
 resize();
 if (!glOK) { fallback('這台裝置的顯示卡不支援半精度浮點渲染，墨色無法化開。請換用新版 Chrome、Safari、Firefox 或 Edge 開啟。'); return; }
@@ -2430,6 +2447,7 @@ function openAnalysisNote() {
   toastBody.replaceChildren();
   for(const [label,value] of [
     ['主旨',analysis.meaning],['意境',analysis.yijing?yijingChips(analysis.yijing).map(([k,v])=>k+' '+v).join('・'):''],['意境解讀',analysis.yijing?.reading],['構圖',analysis.yijing?.composition],['取景方式',window.MoyunLiterary.representationLabel(analysis.scenePlan.representation)+'・'+analysis.scenePlan.note],
+    ['語詞解讀',analysis.scenePlan.words.map(w=>'「'+w.quote+'」'+w.meaning).join(' / ')],
     ['原文依據',analysis.scenePlan.elements.map(e=>e.label+'：'+e.evidence+'（'+e.evidenceKind+'）').join(' / ')||analysis.scenePlan.focus],
     ['題字・'+analysis.inscriptionMode,analysis.poemLines.join(' / ')],['畫面限制',analysis.scenePlan.constraints.join('；')],['雲端補充',analysis.cloudNote||analysis.cloudStatus]
   ]) {
@@ -2701,6 +2719,8 @@ modalSubmitBtn.addEventListener('click', async () => {
     $('readerMeaning').textContent=analysis.confidence+'・'+analysis.meaning;
     $('readerPlanNote').textContent='取景：'+window.MoyunLiterary.representationLabel(analysis.scenePlan.representation)+'。'+analysis.scenePlan.note;
     $('readerEvidence').replaceChildren();
+    $('readerWords').replaceChildren();
+    analysis.scenePlan.words.forEach(w=>{const li=document.createElement('li');li.textContent='「'+w.quote+'」：'+w.meaning+' → '+w.visual;$('readerWords').append(li);});
     analysis.scenePlan.elements.forEach(e=>{const li=document.createElement('li');li.textContent=e.label+' ← '+e.evidence+'（'+e.evidenceKind+'）';$('readerEvidence').append(li);});
     $('readerConstraints').textContent=analysis.scenePlan.constraints.length?'畫面限制：'+analysis.scenePlan.constraints.join('；'):'';
     $('readerInscription').textContent='畫上題字（'+analysis.inscriptionMode+'）：\n'+analysis.poemLines.join('\n');

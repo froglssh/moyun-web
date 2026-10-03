@@ -263,7 +263,7 @@
     // 本機無法確定主旨時的預設說明不參與情感判讀。
     const meaning = /保留未能確定|以原文關鍵段落/.test(ctx.meaning || '') ? '' : String(ctx.meaning || '');
     const ids = (ctx.elements || []).map(e => typeof e === 'string' ? e : e.id);
-    const ov = typeof item === 'object' ? findOverride(item, ctx.sceneIndex || 0) : null;
+    const ov = ctx.override || (typeof item === 'object' ? findOverride(item, ctx.sceneIndex || 0) : null);
 
     const prose = typeof item === 'object' && ['文', '小說', '辭賦'].includes(item.form);
     const emo = detectEmotion(full, meaning, focus, prose);
@@ -318,11 +318,11 @@
 
     return {
       emotion, emotionLabel: EMOTION[emotion].label, emotionRanking: emo.ranked,
-      time, timeLabel: TIME_LABEL[time], season: season || '', seasonLabel: SEASON_LABEL[season || ''], weather, weatherLabel: WEATHER_LABEL[weather],
+      time, timeLabel: ov?.timeUnspecified ? '未明言（中性光）' : TIME_LABEL[time], season: season || '', seasonLabel: SEASON_LABEL[season || ''], weather, weatherLabel: WEATHER_LABEL[weather],
       viewpoint, viewpointLabel: vlabel, viewpointNote: VIEW[viewpoint].note, scale, solitary,
       emptiness: +E.toFixed(2), stillness: st.still, focal, side, realm, texture: tex, sky,
       ink: { gain: inkGain, wet: st.wet, dry: st.dry }, warmth: +warm.toFixed(2), hints,
-      composition, reading, brush, source: ov ? '名篇意境校訂' : '詞彙意境推定'
+      composition, reading, brush, source: ov?.source || (ov ? '名篇意境校訂' : '詞彙意境推定')
     };
   }
 
@@ -359,7 +359,7 @@
   function mergeCloudYijing(local, cloud, ids = []) {
     if (!cloud || typeof cloud !== 'object') return local;
     // 名篇意境已人工校訂：雲端只作回查，不覆寫
-    if (local.source === '名篇意境校訂') return { ...local, source: local.source + '・雲端已回查' };
+    if (/^(名篇意境校訂|逐篇內建畫意)/.test(local.source)) return { ...local, source: local.source.replace(/・雲端已回查/g,'') + '・雲端已回查' };
     if (cloud.season === 'none') cloud = { ...cloud, season: '' };
     const out = { ...local };
     for (const [k, vals] of Object.entries(ENUMS)) if (typeof cloud[k] === 'string' && vals.includes(cloud[k])) out[k] = cloud[k];
