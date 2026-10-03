@@ -75,7 +75,7 @@ const CURATED = {
 // 通用合成器：賦予國文老師的親切口吻與深入淺出的串講
 function buildTeacherVernacular(item, profile) {
   const key = `${item.author}|${item.title}`;
-  if (CURATED[key]) return CURATED[key];
+  if (CURATED[key]) return CURATED[key].replace(/^【國文老師為你解讀】\s*(同學們好！)?\s*/, '');
 
   const meaning = profile?.meaning || '';
   const reading = profile?.scenes?.[0]?.yijing?.reading || '';
@@ -89,9 +89,9 @@ function buildTeacherVernacular(item, profile) {
 
   let lead = '';
   if (author.startsWith('《') || ['古歌謠', '漢樂府', '古詩十九首', '敦煌變文'].includes(author)) {
-    lead = `【國文老師為你解讀】同學們好！這篇選自${author}的《${title}》（${period}·${form}），是古典文學庫中的經典名篇。`;
+    lead = `這篇選自${author}的《${title}》（${period}·${form}），是古典文學庫中的經典名篇。`;
   } else {
-    lead = `【國文老師為你解讀】同學們好！這篇由${period}名家${author}所作的《${title}》（${form}），在文學史上具有獨特的藝術價值。`;
+    lead = `這篇由${period}名家${author}所作的《${title}》（${form}），在文學史上具有獨特的藝術價值。`;
   }
 
   // 1. 白話情節與創作脈絡

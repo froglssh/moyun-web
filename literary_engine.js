@@ -158,7 +158,7 @@
       ethereal: '清幽素雅、超然物外'
     }[mood] || '意境深邃、氣象高雅';
 
-    return `【國文老師為你解讀】同學們好！${authorPrefix}展現出${moodDesc}的藝術風貌。全篇的核心主旨聚焦於「${meaning}」，透過精準而凝練的文句，將情境脈絡與心中所思緊密相扣。老師提醒大家，欣賞古典詩文時要著重體會『情景相生』之美：作者藉由自然意象與人事起伏，抒發深沉的生命感悟。細細品讀，便能體會字裡行間流露的真摯情懷與美學智慧。`;
+    return `${authorPrefix}展現出${moodDesc}的藝術風貌。全篇的核心主旨聚焦於「${meaning}」，透過精準而凝練的文句，將情境脈絡與心中所思緊密相扣。老師提醒大家，欣賞古典詩文時要著重體會『情景相生』之美：作者藉由自然意象與人事起伏，抒發深沉的生命感悟。細細品讀，便能體會字裡行間流露的真摯情懷與美學智慧。`;
   }
   function analyzeLiteraryConcept(input, optionalTitle = '', optionalAuthor = '', optionalPeriod = '', sceneIndex = 0) {
     let item = typeof input === 'object' && input ? input : { title: optionalTitle || '所錄文字', author: optionalAuthor || '', period: optionalPeriod || '', form: '', lines: [String(input || '')] };

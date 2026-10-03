@@ -9,7 +9,7 @@ let scenes=0,marks=0,washes=0;
 for(const item of data){
   const base=engine.analyzeLiteraryConcept(item);
   assert.equal(base.confidence,'逐篇內建畫意',item.title+' has no dedicated plan');
-  assert(base.vernacular && base.vernacular.includes('國文老師'),item.title+' has no teacher vernacular explanation');
+  assert(base.vernacular && !base.vernacular.includes('【國文老師為你解讀】') && !base.vernacular.includes('同學們好！'),item.title+' prefix check');
   for(let i=0;i<base.sceneOptions.length;i++){
     const a=engine.analyzeLiteraryConcept(item,'','','',i),n=engine.normalize(engine.sourceText(item));scenes++;
     assert(a.poemLines.length,item.title+' has no original inscription');

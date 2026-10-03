@@ -28,7 +28,7 @@ assert.equal(g.type, 'OBJECT'); assert.equal(g.properties.elements.items.type, '
 // 2. 典型回覆
 const item = globalThis.CLASSICAL_LITERATURE_DATA.find(x => x.title === '江雪');
 const local = engine.analyzeLiteraryConcept(item);
-const reply = { meaning: '孤高自守', vernacular: '【國文老師為你解讀】柳宗元這首《江雪》展現了孤高自守的品格。', focus: engine.sourceText(item), representation: 'literal', note: '依原文取景', elements: [{ id: 'boat', evidence: '孤舟蓑笠翁' }],
+const reply = { meaning: '孤高自守', vernacular: '柳宗元這首《江雪》展現了孤高自守的品格。', focus: engine.sourceText(item), representation: 'literal', note: '依原文取景', elements: [{ id: 'boat', evidence: '孤舟蓑笠翁' }],
   yijing: { emotion: 'solitude', time: 'day', season: 'winter', weather: 'snow', viewpoint: 'pingyuan', scale: 'vast', emptiness: .85, focal: 'boat', reading: '千山萬徑一片死寂，唯孤舟老翁獨釣寒江，天地愈大人愈小，寄寓貶謫後孤高不屈的心境。', composition: '孤舟置於三分點，大片留白為雪。' } };
 const okBody = { gemini: { candidates: [{ content: { parts: [{ text: JSON.stringify(reply) }] } }] }, openai: { choices: [{ message: { content: JSON.stringify(reply) } }] }, claude: { content: [{ type: 'text', text: JSON.stringify(reply) }] } };
 
