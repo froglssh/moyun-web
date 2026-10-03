@@ -3,11 +3,13 @@ const assert=require('node:assert/strict');
 require('../classical_data.js');require('../literary_profiles.js');require('../literary_objects.js');const Y=require('../literary_yijing.js');
 const engine=require('../literary_engine.js'),render=require('../literary_painter.js');
 require('../literary_catalog.js');
+require('../literary_vernacular.js');
 const data=globalThis.CLASSICAL_LITERATURE_DATA,profiles=globalThis.LITERARY_WORK_PROFILES;
 let scenes=0,marks=0,washes=0;
 for(const item of data){
   const base=engine.analyzeLiteraryConcept(item);
   assert.equal(base.confidence,'逐篇內建畫意',item.title+' has no dedicated plan');
+  assert(base.vernacular && base.vernacular.includes('國文老師'),item.title+' has no teacher vernacular explanation');
   for(let i=0;i<base.sceneOptions.length;i++){
     const a=engine.analyzeLiteraryConcept(item,'','','',i),n=engine.normalize(engine.sourceText(item));scenes++;
     assert(a.poemLines.length,item.title+' has no original inscription');

@@ -111,9 +111,9 @@
     };
     return {
       type: 'object', additionalProperties: false,
-      required: ['meaning', 'focus', 'representation', 'note', 'elements', 'yijing'],
+      required: ['meaning', 'vernacular', 'focus', 'representation', 'note', 'elements', 'yijing'],
       properties: {
-        meaning: { type: 'string' }, focus: { type: 'string' },
+        meaning: { type: 'string' }, vernacular: { type: 'string' }, focus: { type: 'string' },
         representation: { type: 'string', enum: ['literal', 'symbolic', 'calligraphy'] }, note: { type: 'string' },
         elements: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'evidence'], properties: { id: { type: 'string', enum: Object.keys(M.MOTIFS) }, evidence: { type: 'string' } } } },
         yijing: { type: 'object', additionalProperties: false, required: Object.keys(yProps), properties: yProps }

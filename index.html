@@ -452,6 +452,7 @@
 <script src="literary_yijing.js"></script>
 <script src="literary_engine.js"></script>
 <script src="literary_catalog.js"></script>
+<script src="literary_vernacular.js"></script>
 <script src="literary_painter.js"></script>
 <script src="literary_cloud.js"></script>
 <script>if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
@@ -815,6 +816,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
 .insight-toast.note-mode .insight-toast-body .note-key{padding:.5em .8em;border-left:4px solid var(--cinnabar);background:color-mix(in srgb,var(--cinnabar) 7%,transparent);border-radius:4px}
 .insight-toast.note-mode .insight-toast-body .note-minor{font-size:1em;color:var(--ink);padding-top:.5em;border-top:1px dashed var(--line)}
 .insight-toast.note-mode .insight-toast-body .note-minor + .note-minor{padding-top:0;border-top:0}
+.reader-vernacular-card{padding:.6em .9em;border-left:4px solid var(--cinnabar);background:color-mix(in srgb,var(--cinnabar) 7%,transparent);border-radius:4px;color:var(--ink);font-size:15px;line-height:1.75;margin:10px 0}
 @media (max-width:520px){.insight-toast.note-mode{padding:16px 16px 20px}}
 .reader-evidence {padding-left:20px;line-height:1.8;font-size:14px;color:var(--ink-soft);overflow-wrap:anywhere;}
 .ai-provider-row{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0 6px}
@@ -1025,7 +1027,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-body);overf
         <ul id="readerWords" class="reader-evidence" aria-label="語詞釋義與畫面安排"></ul>
         <div id="readerYijing" class="yijing-box" aria-label="意境解析"></div>
         <ul id="readerEvidence" class="reader-evidence"></ul>
-        <p id="readerConstraints" class="reader-intro-text"></p>
+        <div id="readerVernacular" class="reader-vernacular-card"></div>
         <div id="readerInscription" class="reader-quote-text"></div>
       </section>
 
@@ -2446,14 +2448,14 @@ function openAnalysisNote() {
   insightToast.classList.add('note-mode'); applyNoteSize();
   toastBody.replaceChildren();
   for(const [label,value] of [
-    ['主旨',analysis.meaning],['意境',analysis.yijing?yijingChips(analysis.yijing).map(([k,v])=>k+' '+v).join('・'):''],['意境解讀',analysis.yijing?.reading],['構圖',analysis.yijing?.composition],['取景方式',window.MoyunLiterary.representationLabel(analysis.scenePlan.representation)+'・'+analysis.scenePlan.note],
+    ['主旨',analysis.meaning],['白話解釋',analysis.vernacular],['意境',analysis.yijing?yijingChips(analysis.yijing).map(([k,v])=>k+' '+v).join('・'):''],['意境解讀',analysis.yijing?.reading],['構圖',analysis.yijing?.composition],['取景方式',window.MoyunLiterary.representationLabel(analysis.scenePlan.representation)+'・'+analysis.scenePlan.note],
     ['語詞解讀',analysis.scenePlan.words.map(w=>'「'+w.quote+'」'+w.meaning).join(' / ')],
     ['原文依據',analysis.scenePlan.elements.map(e=>e.label+'：'+e.evidence+'（'+e.evidenceKind+'）').join(' / ')||analysis.scenePlan.focus],
-    ['題字・'+analysis.inscriptionMode,analysis.poemLines.join(' / ')],['畫面限制',analysis.scenePlan.constraints.join('；')],['雲端補充',analysis.cloudNote||analysis.cloudStatus]
+    ['題字・'+analysis.inscriptionMode,analysis.poemLines.join(' / ')],['雲端補充',analysis.cloudNote||analysis.cloudStatus]
   ]) {
     if(!value)continue;const row=document.createElement('div'),b=document.createElement('b');b.textContent=label+'：';row.append(b,document.createTextNode(value));
-    if(label==='主旨'||label==='意境解讀')row.className='note-key';
-    else if(/^(原文依據|題字|畫面限制|雲端補充)/.test(label))row.className='note-minor';
+    if(label==='主旨'||label==='意境解讀'||label==='白話解釋')row.className='note-key';
+    else if(/^(原文依據|題字|雲端補充)/.test(label))row.className='note-minor';
     toastBody.append(row);
   }
 }
@@ -2722,7 +2724,7 @@ modalSubmitBtn.addEventListener('click', async () => {
     $('readerWords').replaceChildren();
     analysis.scenePlan.words.forEach(w=>{const li=document.createElement('li');li.textContent='「'+w.quote+'」：'+w.meaning+' → '+w.visual;$('readerWords').append(li);});
     analysis.scenePlan.elements.forEach(e=>{const li=document.createElement('li');li.textContent=e.label+' ← '+e.evidence+'（'+e.evidenceKind+'）';$('readerEvidence').append(li);});
-    $('readerConstraints').textContent=analysis.scenePlan.constraints.length?'畫面限制：'+analysis.scenePlan.constraints.join('；'):'';
+    if($('readerVernacular')) $('readerVernacular').textContent=analysis.vernacular ? '白話解釋：' + analysis.vernacular : '';
     $('readerInscription').textContent='畫上題字（'+analysis.inscriptionMode+'）：\n'+analysis.poemLines.join('\n');
     renderYijingBox($('readerYijing'),analysis.yijing);
   }
